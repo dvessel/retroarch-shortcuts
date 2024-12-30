@@ -1,0 +1,2 @@
+#!/usr/bin/env zsh
+open -b com.libretro.dist.RetroArch --args --appendconfig $0:h:h/Resources/standalone.cfg -L mame ~/Games/Emulation/Arcade/futaribl.zip
