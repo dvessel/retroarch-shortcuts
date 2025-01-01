@@ -1,2 +1,22 @@
 #!/usr/bin/env zsh
-open -b com.libretro.dist.RetroArch --args --appendconfig $0:h:h/Resources/standalone.cfg -L mame ~/Games/Emulation/Arcade/futaribl.zip
+
+# These two variables will be set based on paths in your existing playlists.
+# With the exception of the shortcut.icns file and the two variables, the rest
+# should be identical taken from a template.
+gpath="~/path/to/mameroms/futaribl.zip"
+cpath="~/Library/Application Support/RetroArch/cores/mame_libretro.dylib"
+
+rdir=$0:h:h/Resources
+cnfg=$rdir/override.cfg
+prep=$rdir/preprocess.sh
+post=$rdir/postprocess.sh
+
+# Nightly builds takes precedence.
+for bundleid in com.libretro.dist.RetroArch libretro.RetroArch; do
+  if [[ -n `mdfind kMDItemCFBundleIdentifier = $bundleid` ]]; then
+    source $prep &>/dev/null
+    open -b $bundleid $([[ -f $post ]] && printf --wait-apps) --args --appendconfig $cnfg -L $cpath $gpath
+    source $post &>/dev/null
+    break
+  fi
+done

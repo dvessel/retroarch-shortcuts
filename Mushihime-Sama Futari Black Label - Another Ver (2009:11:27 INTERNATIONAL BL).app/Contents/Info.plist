@@ -5,9 +5,9 @@
 	<key>CFBundleExecutable</key>
 	<string>launcher</string>
 	<key>CFBundleIconFile</key>
-	<string>boxart.icns</string>
+	<string>shortcut.icns</string>
 	<key>CFBundleIdentifier</key>
-	<string>libretro.RetroArch.futaribl</string>
+	<string>libretro.RetroArch.shortcut</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>1.0</string>
 	<key>CFBundlePackageType</key>
