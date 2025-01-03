@@ -8,4 +8,4 @@
 # find the display mode with `displayplacer list`.
 
 # [ mode 54: res:1728x1117 hz:120 color_depth:8 scaling:on ]
-# /opt/homebrew/bin/displayplacer "id:1 mode:54"
+/opt/homebrew/bin/displayplacer "id:1 mode:54"

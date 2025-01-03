@@ -3,8 +3,8 @@
 # These two variables will be set based on paths in your existing playlists.
 # With the exception of the shortcut.icns file and the two variables, the rest
 # should be identical taken from a template.
-gpath="~/path/to/mameroms/futaribl.zip"
-cpath="~/Library/Application Support/RetroArch/cores/mame_libretro.dylib"
+gpath="<GAME_PATH>"
+cpath="<CORE_PATH>"
 
 rdir=$0:h:h/Resources
 cnfg=$rdir/override.cfg
