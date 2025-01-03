@@ -1,22 +1,13 @@
 #!/usr/bin/env zsh
 
-# These two variables will be set based on paths in your existing playlists.
-# With the exception of the shortcut.icns file and the two variables, the rest
-# should be identical taken from a template.
-gpath="<GAME_PATH>"
-cpath="<CORE_PATH>"
-
-rdir=$0:h:h/Resources
-cnfg=$rdir/override.cfg
-prep=$rdir/preprocess.sh
-post=$rdir/postprocess.sh
-
 # Nightly builds takes precedence.
 for bundleid in com.libretro.dist.RetroArch libretro.RetroArch; do
   if [[ -n `mdfind kMDItemCFBundleIdentifier = $bundleid` ]]; then
-    source $prep &>/dev/null
-    open -b $bundleid $([[ -f $post ]] && printf --wait-apps) --args --appendconfig $cnfg -L $cpath $gpath
-    source $post &>/dev/null
+
+    open -b $bundleid --args --appendconfig $0:h:h/Resources/override.cfg \
+      -L  "<CORE_PATH>" \
+          "<GAME_PATH>"
+
     break
   fi
 done
