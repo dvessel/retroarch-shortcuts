@@ -1,0 +1,59 @@
+#!/usr/bin/env zsh
+
+playlist=$1
+output=${2:-.}
+
+home=~/Library/Application\ Support/RetroArch
+template=$home/shortcut-creator/template
+
+IFS=$'\n'
+limit=`jq -r ".items|length" $playlist`
+
+for (( i=0; i!=$limit; i++ )); do
+  read -d '' system label gpath cpath < <(
+    jq -r ".items[$i] | .db_name, .label, .path, .core_path" $playlist
+  )
+
+  if [[ ! -f $gpath ]]; then
+    echo "Missing: $gpath" &>2
+    continue
+  fi
+
+  # Make label file system safe. Replace ':','/' with '-'.
+  shortcutapp=$output/${${label//:/-}//\//-}.app
+
+  mkdir -p $shortcutapp
+  cp -R $template/Contents $shortcutapp
+
+  # Thumbnails can be named after the label (default) or file name. Check both.
+  # - Replace ':','/','&' with '_'.
+  thumbnames=(
+    ${${${label//:/_}//\//_}//&/_}
+    ${${${${gpath:t:r}//:/_}//\//_}//&/_}
+  )
+
+  for set in Boxarts Titles Snaps; do
+    for thumb in $thumbnames; do
+      thumbpath=$home/thumbnails/${system:r}/Named_$set/$thumb.png
+      if [[ -f $thumbpath ]]; then
+        icnpath=$shortcutapp/Contents/Resources/shortcut.icns
+        makeicns -in $thumbpath -out $icnpath
+        break 2
+      fi
+    done
+  done
+
+  bundleid=libretro.RetroArch
+  for s in ${system:r} $label; bundleid+=.`printf $s | tr -cd '[:alnum:]'`
+  plutil -replace CFBundleIdentifier -xml $bundleid $shortcutapp/Contents/info.plist
+
+  dcpath=`jq -r ".default_core_path" $playlist`
+  sed -i '' -E "s:<GAME_PATH>:$gpath:" $shortcutapp/Contents/MacOS/launcher
+  sed -i '' -E "s:<CORE_PATH>:${cpath:-$dcpath}:" $shortcutapp/Contents/MacOS/launcher
+
+  chmod +x $shortcutapp/Contents/MacOS/launcher
+
+  if type codesign &>/dev/null; then
+    codesign --sign - $shortcutapp
+  fi
+done
