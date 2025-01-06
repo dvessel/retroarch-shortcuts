@@ -107,7 +107,9 @@ for i in $working_indices; do
   )
   system=${system:r}
 
-  # Make label file system safe. Replace ':','/' with '-'.
+  # Make label file system safe.
+  # - replace ':' with ','
+  # - replace '/' with '-'.
   shortcutapp=$output/${${label//:/,}//\//-}.app
 
   if [[ -n $process_existing ]] && [[ ! -d $shortcutapp ]]; then
@@ -122,19 +124,30 @@ for i in $working_indices; do
     continue
   fi
 
-  # Thumbnails can be named after the label (default) or file name. Check both.
-  # - Replace ':','/','&' with '_'.
-  # - $gpath can point inside an archive with '#'. Capture both sides.
+  # Custom thumbnails
+  # https://docs.libretro.com/guides/roms-playlists-thumbnails/#custom-thumbnails
+  #
+  # RetroArch will attempt up to 3 different match techniques to associate a playlist
+  # item with a local thumbnail image file, in the following order:
+  #
+  # 1. ROM file name <-> .png file name match.
+  # 2. Game name <-> .png file name match.
+  # 3. Short game name <-> .png file name match.
+  #
+  # - Replace '&*/:`<>?\|' with '_'.
+  # - $gpath may point inside an archive with '#'. Cut extension twice `:r:r` to clear it.
   thumbnames=(
-    ${${${label//:/_}//\//_}//&/_}
-    ${${${${${gpath:t:r}%%#*}//:/_}//\//_}//&/_}
-    ${${${${${gpath:t:r}##*#}//:/_}//\//_}//&/_}
+    ${gpath:t:r:r}
+    $label
+    ${${gpath:t:r:r}// \(*}
+    ${label// \(*}
   )
 
   thumbfound=0
   icnpath=$shortcutapp/Contents/Resources/shortcut.icns
   for set in Boxarts Titles Snaps; do
     for thumb in $thumbnames; do
+      thumb=`printf $thumb | tr '&*/:\`<>?\|' '_'`
       thumbpath=$app_support/thumbnails/$system/Named_$set/$thumb.png
       if [[ -f $thumbpath ]]; then
         thumbfound=1
@@ -159,7 +172,7 @@ for i in $working_indices; do
   # Clear all metadata which could prevent code signing.
   xattr -c $icnpath
 
-  # Application bundle id can only contain '-', '_' and alphanumerics.
+  # Limit application bundle id to alphanumerics.
   bundleid=libretro.RetroArch
   for s in $system $label; bundleid+=.`printf $s | tr -cd '[:alnum:]'`
   if plutil -replace CFBundleIdentifier -xml $bundleid $shortcutapp/Contents/info.plist; then
