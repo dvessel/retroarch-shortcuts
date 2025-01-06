@@ -169,9 +169,6 @@ for i in $working_indices; do
     fi
   fi
 
-  # Clear all metadata which could prevent code signing.
-  xattr -c $icnpath
-
   # Limit application bundle id to alphanumerics.
   bundleid=libretro.RetroArch
   for s in $system $label; bundleid+=.`printf $s | tr -cd '[:alnum:]'`
