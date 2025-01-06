@@ -57,13 +57,13 @@ function s.warn {
 if [[ -n $playlist ]]; then
   playlist=$playlist[-1]
 elif [[ -n $favorites ]]; then
-  favorites=$(eval printf `awk -F= '/content_favorites_path/ {print $2}' $app_support/config/retroarch.cfg`)
+  favorites=$(eval printf %s `awk -F= '/content_favorites_path/ {print $2}' $app_support/config/retroarch.cfg`)
   playlist=${favorites/#\~/$HOME}
 elif [[ -n $playhistory ]]; then
-  playhistory=$(eval printf `awk -F= '/content_history_path/ {print $2}' $app_support/config/retroarch.cfg`)
+  playhistory=$(eval printf %s `awk -F= '/content_history_path/ {print $2}' $app_support/config/retroarch.cfg`)
   playlist=${playhistory/#\~/$HOME}
 else
-  playlistdir=$(eval printf `awk -F= '/playlist_directory/ {print $2}' $app_support/config/retroarch.cfg`)
+  playlistdir=$(eval printf %s `awk -F= '/playlist_directory/ {print $2}' $app_support/config/retroarch.cfg`)
   select=`for lpl in ${playlistdir/#\~/$HOME}/*.lpl; do echo $lpl:t:r; done | fzf`
   if [[ -n $select ]]; then
     playlist=${playlistdir/#\~/$HOME}/$select.lpl
@@ -147,7 +147,7 @@ for i in $working_indices; do
   icnpath=$shortcutapp/Contents/Resources/shortcut.icns
   for set in Boxarts Titles Snaps; do
     for thumb in $thumbnames; do
-      thumb=`printf $thumb | tr '&*/:\`<>?\|' '_'`
+      thumb=`printf %s $thumb | tr '&*/:\`<>?\|' '_'`
       thumbpath=$app_support/thumbnails/$system/Named_$set/$thumb.png
       if [[ -f $thumbpath ]]; then
         thumbfound=1
@@ -171,7 +171,7 @@ for i in $working_indices; do
 
   # Limit application bundle id to alphanumerics.
   bundleid=libretro.RetroArch
-  for s in $system $label; bundleid+=.`printf $s | tr -cd '[:alnum:]'`
+  for s in $system $label; bundleid+=.`printf %s $s | tr -cd '[:alnum:]'`
   if plutil -replace CFBundleIdentifier -xml $bundleid $shortcutapp/Contents/info.plist; then
     s.ok BundleID: $bundleid
   else
