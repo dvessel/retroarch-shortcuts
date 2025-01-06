@@ -42,7 +42,7 @@ app_support=~/Library/Application\ Support/RetroArch
 template=$0:h/template
 
 function s.header {
-  printf "\e[1;30m%s\e[0m\n" "${(j[ ])@}"
+  printf "\n\e[1;30m%s\e[0m\n" "${(j[ ])@}"
 }
 function s.error {
   printf "\e[0;31m%s\e[0m\n" "${(j[ ])@}"
@@ -119,6 +119,7 @@ for i in $working_indices; do
   mkdir -p $shortcutapp
   if ! cp -R $template/Contents $shortcutapp; then
     s.error Could not create \"$shortcutapp:t\".
+    continue
   fi
 
   # Thumbnails can be named after the label (default) or file name. Check both.
@@ -161,14 +162,31 @@ for i in $working_indices; do
   # Application bundle id can only contain '-', '_' and alphanumerics.
   bundleid=libretro.RetroArch
   for s in $system $label; bundleid+=.`printf $s | tr -cd '[:alnum:]'`
-  plutil -replace CFBundleIdentifier -xml $bundleid $shortcutapp/Contents/info.plist && \
-    s.ok BundleID: $bundleid || s.error BundleID not set.
+  if plutil -replace CFBundleIdentifier -xml $bundleid $shortcutapp/Contents/info.plist; then
+    s.ok BundleID: $bundleid
+  else
+    s.error BundleID not set.
+  fi
 
-  cpath=${cpath:-`jq -r ".default_core_path" $playlist`}
-  sed -i '' -E "s:<GAME_PATH>:$gpath:" $shortcutapp/Contents/MacOS/launcher && \
-    s.ok gamepath: $gpath || s.error gamepath not set.
-  sed -i '' -E "s:<CORE_PATH>:$cpath:" $shortcutapp/Contents/MacOS/launcher && \
-    s.ok corepath: $cpath || s.error corepath not set.
+  runnable=0
+  if [[ -f $gpath ]]; then
+    sed -i '' -E "s:<GAME_PATH>:$gpath:" $shortcutapp/Contents/MacOS/launcher
+    s.ok gamepath: $gpath
+
+    for _cpath in $cpath `jq -r ".default_core_path" $playlist`; do
+      if [[ -f $_cpath ]]; then
+        sed -i '' -E "s:<CORE_PATH>:$_cpath:" $shortcutapp/Contents/MacOS/launcher
+        s.ok corepath: $_cpath
+        runnable=1
+        break
+      fi
+    done
+  fi
+
+  if ! (( $runnable )); then
+    s.error Error assigning paths.
+    continue
+  fi
 
   chmod +x $shortcutapp/Contents/MacOS/launcher
 
