@@ -1,59 +1,177 @@
 #!/usr/bin/env zsh
 
-playlist=$1
-output=${2:-.}
+# requires fzf, jq and makeicns
+# run: brew install fzf jq makeicns
 
-home=~/Library/Application\ Support/RetroArch
-template=$home/shortcut-creator/template
+zparseopts -D -E -F - \
+  -process-all=process_all \
+  -process-existing=process_existing \
+  -favorites=favorites \
+  -history=playhistory \
+  {p,-playlist}:=playlist \
+  {h,-help}=help || {
+    print "see --help" >&2
+    return 1
+  }
+
+if [[ -n $help ]]; then
+cat <<- --------
+HELP TEXT PLACEHOLDER!
+
+Last argument should point to the directory where the shortcut.app will be created.
+Defaults to the current working directory.
+
+will process without fzf select mode.
+  --process-all
+  --process-existing  This will only overwrite existing shortcuts.
+
+Playlists:
+  --favorites
+  --history
+  -p, --playlist <path/to/playlist.lpl>
+
+If no playlist argument is passed, fzf will list all of your playlists.
+
+--------
+  return
+fi
+
+output=${1:-.}
+
+app_support=~/Library/Application\ Support/RetroArch
+template=$0:h/template
+
+function s.header {
+  printf "\e[1;30m%s\e[0m\n" "${(j[ ])@}"
+}
+function s.error {
+  printf "\e[0;31m%s\e[0m\n" "${(j[ ])@}"
+}
+function s.ok {
+  printf "\e[0;32m%s\e[0m\n" "${(j[ ])@}"
+}
+function s.warn {
+  printf "\e[0;33m%s\e[0m\n" "${(j[ ])@}"
+}
+
+if [[ -n $playlist ]]; then
+  playlist=$playlist[-1]
+elif [[ -n $favorites ]]; then
+  favorites=$(eval printf `awk -F= '/content_favorites_path/ {print $2}' $app_support/config/retroarch.cfg`)
+  playlist=${favorites/#\~/$HOME}
+elif [[ -n $playhistory ]]; then
+  playhistory=$(eval printf `awk -F= '/content_history_path/ {print $2}' $app_support/config/retroarch.cfg`)
+  playlist=${playhistory/#\~/$HOME}
+else
+  playlistdir=$(eval printf `awk -F= '/playlist_directory/ {print $2}' $app_support/config/retroarch.cfg`)
+  select=`for lpl in ${playlistdir/#\~/$HOME}/*.lpl; do echo $lpl:t:r; done | fzf`
+  if [[ -n $select ]]; then
+    playlist=${playlistdir/#\~/$HOME}/$select.lpl
+  else
+    s.warn Nothing selected.
+    return
+  fi
+fi
+
+if [[ ! -f $playlist ]]; then
+  s.error Playlist does not exist:$playlist
+  return 1
+fi
+
+limit=`jq -r ".items | length" $playlist`
+cleanlist=$(
+  for (( i=0; i!=$limit; i++ )); do
+    # Scanning the history playlist can get spotty so check for .db_name.
+    # If .db_name exists, everything else should exist.
+    if [[ -n `jq -r ".items[$i].db_name" $playlist` ]]; then
+      echo "$i\t`jq -r ".items[$i].label" $playlist`"
+    fi
+  done
+)
+
+if [[ -n ${process_all:-$process_existing} ]]; then
+  working_indices=( `print $cleanlist | cut -f1` )
+else
+  working_indices=( `print $cleanlist | fzf --multi --delimiter='\t' --with-nth=2 | cut -f1` )
+fi
+
+if [[ -z $working_indices ]]; then
+  s.warn Nothing to process.
+  return
+fi
 
 IFS=$'\n'
-limit=`jq -r ".items|length" $playlist`
-
-for (( i=0; i!=$limit; i++ )); do
+for i in $working_indices; do
   read -d '' system label gpath cpath < <(
     jq -r ".items[$i] | .db_name, .label, .path, .core_path" $playlist
   )
+  system=${system:r}
 
-  if [[ ! -f $gpath ]]; then
-    echo "Missing: $gpath" &>2
+  # Make label file system safe. Replace ':','/' with '-'.
+  shortcutapp=$output/${${label//:/,}//\//-}.app
+
+  if [[ -n $process_existing ]] && [[ ! -d $shortcutapp ]]; then
     continue
   fi
 
-  # Make label file system safe. Replace ':','/' with '-'.
-  shortcutapp=$output/${${label//:/-}//\//-}.app
+  s.header Creating \"$shortcutapp:t\"
 
   mkdir -p $shortcutapp
-  cp -R $template/Contents $shortcutapp
+  if ! cp -R $template/Contents $shortcutapp; then
+    s.error Could not create \"$shortcutapp:t\".
+  fi
 
   # Thumbnails can be named after the label (default) or file name. Check both.
   # - Replace ':','/','&' with '_'.
+  # - $gpath can point inside an archive with '#'. Capture both sides.
   thumbnames=(
     ${${${label//:/_}//\//_}//&/_}
-    ${${${${gpath:t:r}//:/_}//\//_}//&/_}
+    ${${${${${gpath:t:r}%%#*}//:/_}//\//_}//&/_}
+    ${${${${${gpath:t:r}##*#}//:/_}//\//_}//&/_}
   )
 
+  thumbfound=0
+  icnpath=$shortcutapp/Contents/Resources/shortcut.icns
   for set in Boxarts Titles Snaps; do
     for thumb in $thumbnames; do
-      thumbpath=$home/thumbnails/${system:r}/Named_$set/$thumb.png
+      thumbpath=$app_support/thumbnails/$system/Named_$set/$thumb.png
       if [[ -f $thumbpath ]]; then
-        icnpath=$shortcutapp/Contents/Resources/shortcut.icns
+        thumbfound=1
+        s.ok "$set/$thumb.png -> $icnpath:t"
         makeicns -in $thumbpath -out $icnpath
         break 2
       fi
     done
   done
 
-  bundleid=libretro.RetroArch
-  for s in ${system:r} $label; bundleid+=.`printf $s | tr -cd '[:alnum:]'`
-  plutil -replace CFBundleIdentifier -xml $bundleid $shortcutapp/Contents/info.plist
+  # Use RetroSystem XMB theme content icon as a fallback.
+  if ! (( $thumbfound )); then
+    fallback=$app_support/assets/xmb/retrosystem/png/$system-content.png
+    if [[ -f $fallback ]]; then
+      s.ok "retrosystem/$system-content.png -> $icnpath:t"
+      makeicns -in $fallback -out $icnpath
+    else
+      s.warn Using the default $icnpath:t file.
+    fi
+  fi
 
-  dcpath=`jq -r ".default_core_path" $playlist`
-  sed -i '' -E "s:<GAME_PATH>:$gpath:" $shortcutapp/Contents/MacOS/launcher
-  sed -i '' -E "s:<CORE_PATH>:${cpath:-$dcpath}:" $shortcutapp/Contents/MacOS/launcher
+  # Clear all metadata which could prevent code signing.
+  xattr -c $icnpath
+
+  # Application bundle id can only contain '-', '_' and alphanumerics.
+  bundleid=libretro.RetroArch
+  for s in $system $label; bundleid+=.`printf $s | tr -cd '[:alnum:]'`
+  plutil -replace CFBundleIdentifier -xml $bundleid $shortcutapp/Contents/info.plist && \
+    s.ok BundleID: $bundleid || s.error BundleID not set.
+
+  cpath=${cpath:-`jq -r ".default_core_path" $playlist`}
+  sed -i '' -E "s:<GAME_PATH>:$gpath:" $shortcutapp/Contents/MacOS/launcher && \
+    s.ok gamepath: $gpath || s.error gamepath not set.
+  sed -i '' -E "s:<CORE_PATH>:$cpath:" $shortcutapp/Contents/MacOS/launcher && \
+    s.ok corepath: $cpath || s.error corepath not set.
 
   chmod +x $shortcutapp/Contents/MacOS/launcher
 
-  if type codesign &>/dev/null; then
-    codesign --sign - $shortcutapp
-  fi
+  codesign --sign - $shortcutapp
+
 done
