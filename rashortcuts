@@ -135,11 +135,11 @@ for i in $working_indices; do
   # 3. Short game name <-> .png file name match.
   #
   # - Replace '&*/:`<>?\|' with '_'.
-  # - $gpath may point inside an archive with '#'. Cut extension twice `:r:r` to clear it.
-  thumbnames=(
-    ${gpath:t:r:r}
+  # - $gpath may point inside an archive with '#'. Discard it!
+  typeset -aU thumbnames=(
+    ${${gpath:t:r}//\#*}
     $label
-    ${${gpath:t:r:r}// \(*}
+    ${${${gpath:t:r}// \(*}//\#*}
     ${label// \(*}
   )
 
