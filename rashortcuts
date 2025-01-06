@@ -182,7 +182,7 @@ for i in $working_indices; do
   fi
 
   runnable=0
-  if [[ -f $gpath ]]; then
+  if [[ -f ${gpath//\#*} ]]; then
     sed -i '' -E "s:<GAME_PATH>:$gpath:" $shortcutapp/Contents/MacOS/launcher
     s.ok gamepath: $gpath
 
