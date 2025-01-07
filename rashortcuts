@@ -135,13 +135,27 @@ for i in $working_indices; do
   # 3. Short game name <-> .png file name match.
   #
   # - Replace '&*/:`<>?\|' with '_'.
-  # - $gpath may point inside an archive with '#'. Discard it!
+  # - $gpath may point inside an archive with '#'. Capture both sides!
+
+  unset match
+  [[ $gpath:t =~ "(.*)\.[[:alnum:]]{2,3}\#(.*)\.[[:alnum:]]{2,4}$" ]]
+
   typeset -aU thumbnames=(
-    ${${gpath:t:r}//\#*}
+    ${match[1]:-$gpath:t:r}
+    ${match[2]}
     $label
-    ${${${gpath:t:r}// \(*}//\#*}
-    ${label// \(*}
   )
+
+  # For each name in $thumbnames:
+  # - Chop off each occurance of `(.*)` from the trailing end.
+  # - Add each iteration to the list of naming candidates.
+  for _name in $thumbnames; do
+    while [[ $_name =~ "^(.+)(\(|\[)([^([]*)(\)|\]).*$" ]]; do
+      _name=$match[1]
+      # Discard trailing spaces.
+      thumbnames+=${_name%${_name##*[! ]}}
+    done
+  done
 
   thumbfound=0
   icnpath=$shortcutapp/Contents/Resources/shortcut.icns
