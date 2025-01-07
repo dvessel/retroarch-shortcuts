@@ -3,11 +3,8 @@
 # Nightly builds takes precedence.
 for bundleid in com.libretro.dist.RetroArch libretro.RetroArch; do
   if [[ -n `mdfind kMDItemCFBundleIdentifier = $bundleid` ]]; then
-
     open -b $bundleid --args --appendconfig $0:h:h/Resources/override.cfg \
-      -L  "<CORE_PATH>" \
-          "<GAME_PATH>"
-
+      -L  #CORE# "#GAME#"
     break
   fi
 done

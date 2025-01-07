@@ -100,12 +100,17 @@ if [[ -z $working_indices ]]; then
   return
 fi
 
+default_cname=`jq -r ".default_core_name" $playlist`
+default_cpath=`jq -r ".default_core_path" $playlist`
+
 IFS=$'\n'
 for i in $working_indices; do
-  read -d '' system label gpath cpath < <(
-    jq -r ".items[$i] | .db_name, .label, .path, .core_path" $playlist
+  read -d '' system label gpath cname cpath < <(
+    jq -r ".items[$i] | .db_name, .label, .path, .core_name, .core_path" $playlist
   )
   system=${system:r}
+  cname=${default_cname:-$cname}
+  cpath=${default_cpath:-$cpath}
 
   # Make label file system safe.
   # - replace ':' with ','
@@ -124,25 +129,22 @@ for i in $working_indices; do
     continue
   fi
 
-  # Custom thumbnails
-  # https://docs.libretro.com/guides/roms-playlists-thumbnails/#custom-thumbnails
-  #
-  # RetroArch will attempt up to 3 different match techniques to associate a playlist
-  # item with a local thumbnail image file, in the following order:
-  #
-  # 1. ROM file name <-> .png file name match.
-  # 2. Game name <-> .png file name match.
-  # 3. Short game name <-> .png file name match.
-  #
-  # - Replace '&*/:`<>?\|' with '_'.
-  # - $gpath may point inside an archive with '#'. Capture both sides!
+  # gpathextended: full path including possible archive content.
+  # gpath: game path without the archive content pointers.
+  # fname: name of the file itself.
+  # aname: name of archive content. Empty if not present.
+  # label: name from database.
 
   unset match
-  [[ $gpath:t =~ "(.*)\.[[:alnum:]]{2,3}\#(.*)\.[[:alnum:]]{2,4}$" ]]
+  [[ $gpath:t =~ "(.*\.[[:alnum:]]{2,3})\#(.*)\.[[:alnum:]]{2,4}$" ]]
+  gpathextended=$gpath
+  gpath=$gpath:h/${match[1]:-$gpath:t}
+  fname=$gpath:t:r
+  aname=$match[2]
 
   typeset -aU thumbnames=(
-    ${match[1]:-$gpath:t:r}
-    ${match[2]}
+    $fname
+    $aname
     $label
   )
 
@@ -161,6 +163,7 @@ for i in $working_indices; do
   icnpath=$shortcutapp/Contents/Resources/shortcut.icns
   for set in Boxarts Titles Snaps; do
     for thumb in $thumbnames; do
+      # Mimic RetroArch's safe naming for thumbnails.
       thumb=`printf %s $thumb | tr '&*/:\`<>?\|' '_'`
       thumbpath=$app_support/thumbnails/$system/Named_$set/$thumb.png
       if [[ -f $thumbpath ]]; then
@@ -183,32 +186,35 @@ for i in $working_indices; do
     fi
   fi
 
+  # short core name
+  unset match
+  [[ $cpath:t =~ "(.*)_libretro.dylib" ]]
+  scname=$match[1]
+
   # Limit application bundle id to alphanumerics.
   bundleid=libretro.RetroArch
-  for s in $system $label; bundleid+=.`printf %s $s | tr -cd '[:alnum:]'`
-  if plutil -replace CFBundleIdentifier -xml $bundleid $shortcutapp/Contents/info.plist; then
+  for s in $scname $fname; bundleid+=.`printf %s $s | tr -cd '[:alnum:]'`
+  if [[ -n $scname ]] && plutil -replace CFBundleIdentifier -xml $bundleid $shortcutapp/Contents/info.plist; then
     s.ok BundleID: $bundleid
   else
     s.error BundleID not set.
   fi
 
   runnable=0
-  if [[ -f ${gpath//\#*} ]]; then
-    sed -i '' -E "s:<GAME_PATH>:$gpath:" $shortcutapp/Contents/MacOS/launcher
-    s.ok gamepath: $gpath
+  if [[ -f $gpath ]]; then
+    sed -i '' -E "s:#GAME#:$gpathextended:" $shortcutapp/Contents/MacOS/launcher
+    s.ok game: $gpathextended:t
 
-    for _cpath in $cpath `jq -r ".default_core_path" $playlist`; do
-      if [[ -f $_cpath ]]; then
-        sed -i '' -E "s:<CORE_PATH>:$_cpath:" $shortcutapp/Contents/MacOS/launcher
-        s.ok corepath: $_cpath
-        runnable=1
-        break
-      fi
-    done
+    # Use simplified naming instead of fragile paths.
+    if [[ -n $scname ]]; then
+      sed -i '' -E "s:#CORE#:$scname:" $shortcutapp/Contents/MacOS/launcher
+      s.ok core: $cname
+      runnable=1
+    fi
   fi
 
   if ! (( $runnable )); then
-    s.error Error assigning paths.
+    s.error Error assigning game path or core id.
     continue
   fi
 
