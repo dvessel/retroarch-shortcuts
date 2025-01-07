@@ -220,6 +220,6 @@ for i in $working_indices; do
 
   chmod +x $shortcutapp/Contents/MacOS/launcher
 
-  codesign --sign - $shortcutapp
+  codesign --force --sign - $shortcutapp
 
 done
