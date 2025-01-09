@@ -87,7 +87,7 @@ else
 fi
 
 if [[ ! -f $playlist ]]; then
-  s.error "Playlist does not exist:\n- $playlist"
+  s.error "Playlist does not exist: $playlist"
   return 1
 fi
 
