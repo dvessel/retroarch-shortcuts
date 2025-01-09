@@ -238,12 +238,12 @@ for i in $working_indices; do
   runnable=0
   if [[ -f $gpath ]]; then
     sed -i '' -E "s:#GAME#:$gpathextended:" $shortcut_app/Contents/MacOS/launcher && \
-      s.ok "game: $gpathextended:t"
+      s.ok "Game: $gpathextended:t"
 
     # Use simplified naming instead of fragile paths.
     if [[ -n $scname ]]; then
       sed -i '' -E "s:#CORE#:$scname:" $shortcut_app/Contents/MacOS/launcher && \
-        s.ok "core: $cname" && \
+        s.ok "Core: $cname" && \
         runnable=1
     else
       s.error "The core could not be determined from the playlist. Do one of the following:"
