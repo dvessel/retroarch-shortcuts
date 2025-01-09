@@ -9,19 +9,26 @@ brew install fzf jq makeicns
 ```
 
 ```sh
-Usage:
-
-Last argument should point to the directory where the shortcut.app will be created.
-Defaults to the current working directory.
-
-will process without fzf select mode.
-  --process-all
-  --process-existing  This will only overwrite existing shortcuts.
+usage: rashortcuts [OPTION]... [OUTPUT]
 
 Playlists:
   --favorites
   --history
   -p, --playlist <path/to/playlist.lpl>
 
-If no playlist argument is passed, fzf will list all of your playlists.
+If a playlist is not provided, fzf will list them automatically.
+
+Process without fzf game selection.
+  --process-all           process all entries for a given playlist
+  --process-existing      re-process existing shortcuts for a given output path
+
+Last argument should point to the directory where the shortcut.app will be created.
+Defaults to the current working directory.
+
+Custom templates:
+  --template <path/to/template>
+
+An optional template for building shortcuts. It defaults to the folder named
+"template" located in the same directory as this script.
+
 ```
