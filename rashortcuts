@@ -225,7 +225,7 @@ for i in $working_indices; do
   scname=$match[1]
 
   # Limit application bundle id to alphanumerics.
-  bundleid=libretro.RetroArch
+  bundleid=com.libretro
   for s in $scname $fname; bundleid+=.`printf %s $s | tr -cd '[:alnum:]'`
   if [[ -n $scname ]] && \
       plutil -replace CFBundleIdentifier -string $bundleid $shortcut_info
