@@ -115,16 +115,12 @@ if [[ -z $working_indices ]]; then
   return
 fi
 
-for _bid in com.libretro.dist.RetroArch libretro.RetroArch; do
-  _biddir=`mdfind kMDItemCFBundleIdentifier = $_bid`
-  if [[ -n $_biddir ]]; then
-    app_dir=$_biddir
-    app_info=$_biddir/Contents/Info.plist
-    app_ver=`plutil -extract CFBundleShortVersionString raw $app_info`
-    min_ver=`plutil -extract LSMinimumSystemVersion raw $app_info`
-    break
-  fi
-done
+app_dir=`mdfind kMDItemCFBundleIdentifier = com.libretro.dist.RetroArch | head -n 1`
+if [[ -n $app_dir ]]; then
+  app_info=$app_dir/Contents/Info.plist
+  app_ver=`plutil -extract CFBundleShortVersionString raw $app_info`
+  min_ver=`plutil -extract LSMinimumSystemVersion raw $app_info`
+fi
 
 default_cname=`jq -r ".default_core_name" $playlist`
 default_cpath=`jq -r ".default_core_path" $playlist`
