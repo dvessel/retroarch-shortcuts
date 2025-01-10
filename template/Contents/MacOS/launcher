@@ -1,10 +1,8 @@
 #!/usr/bin/env zsh
 
-# Nightly builds takes precedence.
-for bundleid in com.libretro.dist.RetroArch libretro.RetroArch; do
-  if [[ -n `mdfind kMDItemCFBundleIdentifier = $bundleid` ]]; then
-    open -b $bundleid --args --appendconfig $0:h:h/Resources/override.cfg \
-      -L  #CORE# "#GAME#"
-    break
-  fi
-done
+zparseopts -D -E - -appendconfig:=apcfg {L,-libretro}:=core
+
+appendconfig=( $ZSH_SCRIPT:h:h/Resources/override.cfg $apcfg[-1] )
+
+open -b com.libretro.dist.RetroArch --args $@ --appendconfig "${(j[|])appendconfig}" \
+  -L ${core[-1]:-"#CORE#"} "#GAME#"
