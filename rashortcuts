@@ -135,8 +135,8 @@ for i in $working_indices; do
     jq -r ".items[$i] | .db_name, .label, .path, .core_name, .core_path" $playlist
   )
   system=${system:r}
-  cname=${default_cname:-$cname}
-  cpath=${default_cpath:-$cpath}
+  cname=${${cname/DETECT}:-$default_cname}
+  cpath=${${cpath/DETECT}:-$default_cpath}
 
   # Make label file system safe.
   # - replace ':' with ','
