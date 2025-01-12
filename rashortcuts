@@ -175,6 +175,44 @@ for i in $working_indices; do
   fname=$gpath:t:r
   aname=$match[2]
 
+  # short core name
+  unset match
+  [[ $cpath:t =~ "(.*)_libretro.dylib" ]]
+  scname=$match[1]
+
+  # Limit application bundle id to alphanumerics.
+  bundleid=com.libretro
+  for s in $scname $fname; bundleid+=.`printf %s $s | tr -cd '[:alnum:]'`
+  if [[ -n $scname ]] && \
+      plutil -insert CFBundleIdentifier -string $bundleid $shortcut_info
+  then
+    s.ok "BundleID: $bundleid"
+  else
+    s.error "BundleID not set."
+  fi
+
+  runnable=0
+  if [[ -f $gpath ]]; then
+    sed -i '' -E "s:#GAME#:$gpathextended:" $shortcut_app/Contents/MacOS/launcher && \
+      s.ok "Game: $gpathextended:t"
+
+    # Use simplified naming instead of fragile paths.
+    if [[ -n $scname ]]; then
+      sed -i '' -E "s:#CORE#:$scname:" $shortcut_app/Contents/MacOS/launcher && \
+        s.ok "Core: $cname" && \
+        runnable=1
+    else
+      s.error "The core could not be determined from the playlist. Do one of the following:"
+      s.error "- Set a default core for the playlist. (recommended)"
+      s.error "- Run the game in RetroArch at least once from the playlist."
+    fi
+  fi
+
+  if ! (( $runnable )); then
+    s.error "Error assigning game path or core id."
+    continue
+  fi
+
   typeset -aU thumbnames=(
     $fname
     $aname
@@ -217,44 +255,6 @@ for i in $working_indices; do
     else
       s.warn Using the default $icnpath:t file.
     fi
-  fi
-
-  # short core name
-  unset match
-  [[ $cpath:t =~ "(.*)_libretro.dylib" ]]
-  scname=$match[1]
-
-  # Limit application bundle id to alphanumerics.
-  bundleid=com.libretro
-  for s in $scname $fname; bundleid+=.`printf %s $s | tr -cd '[:alnum:]'`
-  if [[ -n $scname ]] && \
-      plutil -replace CFBundleIdentifier -string $bundleid $shortcut_info
-  then
-    s.ok "BundleID: $bundleid"
-  else
-    s.error "BundleID not set."
-  fi
-
-  runnable=0
-  if [[ -f $gpath ]]; then
-    sed -i '' -E "s:#GAME#:$gpathextended:" $shortcut_app/Contents/MacOS/launcher && \
-      s.ok "Game: $gpathextended:t"
-
-    # Use simplified naming instead of fragile paths.
-    if [[ -n $scname ]]; then
-      sed -i '' -E "s:#CORE#:$scname:" $shortcut_app/Contents/MacOS/launcher && \
-        s.ok "Core: $cname" && \
-        runnable=1
-    else
-      s.error "The core could not be determined from the playlist. Do one of the following:"
-      s.error "- Set a default core for the playlist. (recommended)"
-      s.error "- Run the game in RetroArch at least once from the playlist."
-    fi
-  fi
-
-  if ! (( $runnable )); then
-    s.error "Error assigning game path or core id."
-    continue
   fi
 
   chmod +x $shortcut_app/Contents/MacOS/launcher
