@@ -121,6 +121,9 @@ if [[ -n $app_dir ]]; then
   app_info=$app_dir/Contents/Info.plist
   app_ver=`plutil -extract CFBundleShortVersionString raw $app_info`
   min_ver=`plutil -extract LSMinimumSystemVersion raw $app_info`
+else
+  s.error "RetroArch not found."
+  return 1
 fi
 
 default_cname=`jq -r ".default_core_name" $playlist`
