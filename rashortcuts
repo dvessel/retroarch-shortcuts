@@ -44,10 +44,10 @@ An optional template for building shortcuts. It defaults to the folder named
 return
 fi
 
-s.header(){ printf "\n\e[1;30m%s\e[0m\n" $@ }
-s.ok()    { printf "\e[0;32m%s\e[0m\n" $@ }
-s.warn()  { printf "\e[0;33m%s\e[0m\n" $@ }
-s.error() { printf "\e[0;31m%s\e[0m\n" $@ >&2 }
+p.header(){ printf "\n\e[1;30m%s\e[0m\n" $@ }
+p.ok()    { printf   "\e[0;32m%s\e[0m\n" $@ }
+p.warn()  { printf   "\e[0;33m%s\e[0m\n" $@ }
+p.error() { printf   "\e[0;31m%s\e[0m\n" $@ >&2 }
 
 output=${1:-.}
 
@@ -56,7 +56,7 @@ app_support=~/Library/Application\ Support/RetroArch
 template=${template[-1]:-$(dirname `realpath $0`)/template}
 
 if [[ ! -d $template/Contents/MacOS ]]; then
-  s.error "Template does not exist or is not valid: $template"
+  p.error "Invalid template path: $template"
   return 1
 fi
 
@@ -82,13 +82,13 @@ else
   if [[ -n $select ]]; then
     playlist=${playlistdir/#\~/$HOME}/$select.lpl
   else
-    s.warn "Nothing selected."
+    p.warn "Nothing selected."
     return
   fi
 fi
 
 if [[ ! -f $playlist ]]; then
-  s.error "Playlist does not exist: $playlist"
+  p.error "Playlist does not exist: $playlist"
   return 1
 fi
 
@@ -112,7 +112,7 @@ else
 fi
 
 if [[ -z $working_indices ]]; then
-  s.warn "Nothing to process."
+  p.warn "Nothing to process."
   return
 fi
 
@@ -122,7 +122,7 @@ if [[ -n $app_dir ]]; then
   app_ver=`plutil -extract CFBundleShortVersionString raw $app_info`
   min_ver=`plutil -extract LSMinimumSystemVersion raw $app_info`
 else
-  s.error "RetroArch not found."
+  p.error "RetroArch not found."
   return 1
 fi
 
@@ -147,11 +147,11 @@ for i in $working_indices; do
     continue
   fi
 
-  s.header "Creating \"$shortcut_app:t\""
+  p.header "Creating \"$shortcut_app:t\""
 
   mkdir -p $shortcut_app
   if ! cp -R $template/Contents $shortcut_app; then
-    s.error "Could not create \"$shortcut_app:t\"."
+    p.error "Could not create \"$shortcut_app:t\"."
     continue
   fi
 
@@ -186,30 +186,30 @@ for i in $working_indices; do
   if [[ -n $scname ]] && \
       plutil -insert CFBundleIdentifier -string $bundleid $shortcut_info
   then
-    s.ok "BundleID: $bundleid"
+    p.ok "BundleID: $bundleid"
   else
-    s.error "BundleID not set."
+    p.error "BundleID not set."
   fi
 
   runnable=0
   if [[ -f $gpath ]]; then
     sed -i '' -E "s:#GAME#:$gpathextended:" $shortcut_app/Contents/MacOS/launcher && \
-      s.ok "Game: $gpathextended:t"
+      p.ok "Game: $gpathextended:t"
 
     # Use simplified naming instead of fragile paths.
     if [[ -n $scname ]]; then
       sed -i '' -E "s:#CORE#:$scname:" $shortcut_app/Contents/MacOS/launcher && \
-        s.ok "Core: $cname" && \
+        p.ok "Core: $cname" && \
         runnable=1
     else
-      s.error "The core could not be determined from the playlist. Do one of the following:"
-      s.error "- Set a default core for the playlist. (recommended)"
-      s.error "- Run the game in RetroArch at least once from the playlist."
+      p.error "The core could not be determined from the playlist. Do one of the following:" \
+              "- Set a default core for the playlist. (recommended)" \
+              "- Run the game in RetroArch at least once from the playlist."
     fi
   fi
 
   if ! (( $runnable )); then
-    s.error "Error assigning game path or core id."
+    p.error "Error assigning game path or core id."
     continue
   fi
 
@@ -239,7 +239,7 @@ for i in $working_indices; do
       thumbpath=$app_support/thumbnails/$system/Named_$set/$thumb.png
       if [[ -f $thumbpath ]]; then
         thumbfound=1
-        s.ok "$set/$thumb.png -> $icnpath:t"
+        p.ok "$set/$thumb.png -> $icnpath:t"
         makeicns -align bottom -in $thumbpath -out $icnpath
         break 2
       fi
@@ -250,10 +250,10 @@ for i in $working_indices; do
   if ! (( $thumbfound )); then
     fallback=$app_support/assets/xmb/retrosystem/png/$system-content.png
     if [[ -f $fallback ]]; then
-      s.ok "retrosystem/$system-content.png -> $icnpath:t"
+      p.ok "retrosystem/$system-content.png -> $icnpath:t"
       makeicns -align bottom -in $fallback -out $icnpath
     else
-      s.warn Using the default $icnpath:t file.
+      p.warn "Using the default $icnpath:t file."
     fi
   fi
 
