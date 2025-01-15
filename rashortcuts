@@ -5,8 +5,8 @@
 zparseopts -D -E -F - \
   -process-all=process_all \
   -process-existing=process_existing \
-  -favorites=favorites \
-  -history=playhistory \
+  -favorites=_favorites \
+  -history=_history \
   {p,-playlist}:=playlist \
   {t,-template}:=template \
   {h,-help}=help || {
@@ -82,18 +82,18 @@ else
 fi
 
 if [[ -n $playlist ]]; then
-  playlist=$playlist[-1]
-elif [[ -n $favorites ]]; then
-  favorites=$(eval printf %s $(
-    awk -F= '/content_favorites_path/ {print $2}' $app_support/config/retroarch.cfg
-  ))
-  playlist=${favorites/#\~/$HOME}
-elif [[ -n $playhistory ]]; then
-  playhistory=$(eval printf %s $(
-    awk -F= '/content_history_path/ {print $2}' $app_support/config/retroarch.cfg
-  ))
-  playlist=${playhistory/#\~/$HOME}
+  playlist=${playlist[-1]}
 else
+  for k in _favorites _history; [[ -n ${(P)k} ]] && {
+    content_path=$(eval printf %s $(
+      awk -F= "/content${k}_path/ { print \$2 }" $app_support/config/retroarch.cfg
+    ))
+    playlist=${content_path/#\~/$HOME}
+    break
+  }
+fi
+
+if [[ ! -n $playlist ]]; then
   playlistdir=$(eval printf %s $(
     awk -F= '/playlist_directory/ {print $2}' $app_support/config/retroarch.cfg
   ))
