@@ -56,18 +56,11 @@ app_support=~/Library/Application\ Support/RetroArch
 # Ensure the default template is located with this script.
 template=${template[-1]:-$(dirname `realpath $0`)/template}
 
-if [[ ! -d $template ]]; then
-  p.error "Template not found: $template"
+for f in info.plist MacOS/launcher; [[ -f $template/Contents/$f ]] || {
+  p.error "Check template: $f:t file not found." \
+          "- $template/Contents/$f"
   return 1
-fi
-if [[ ! -f $template/Contents/info.plist ]]; then
-  p.error "Check template: info.plist file not found."
-  return 1
-fi
-if [[ ! -f $template/Contents/MacOS/launcher ]]; then
-  p.error "Check template: launcher executable not found."
-  return 1
-fi
+}
 
 # Find the RetroArch application directory. It must be spotlight searchable.
 # This is needed to find the version number and minimum system requirements.
