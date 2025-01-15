@@ -63,15 +63,12 @@ for f in info.plist MacOS/launcher; [[ -f $template/Contents/$f ]] || {
 }
 
 # Find the RetroArch application directory. It must be spotlight searchable.
-# This is needed to find the version number and minimum system requirements.
+# Attempt to find the version number and minimum system requirements.
 app_dir=`mdfind kMDItemCFBundleIdentifier = com.libretro.dist.RetroArch | head -n 1`
 if [[ -n $app_dir ]]; then
   app_info=$app_dir/Contents/Info.plist
   app_ver=`plutil -extract CFBundleShortVersionString raw $app_info`
   min_ver=`plutil -extract LSMinimumSystemVersion raw $app_info`
-else
-  p.error "RetroArch not found."
-  return 1
 fi
 
 if [[ -n $playlist ]]; then
@@ -182,10 +179,8 @@ for i in $work_indices; do
   # INFO.PLIST: Inherit info keys from RetroArch.
   shortcut_info=$shortcut_app/Contents/info.plist
   plutil -insert CFBundleDisplayName -string $label $shortcut_info
-  plutil -insert CFBundleShortVersionString -string $app_ver $shortcut_info
-  plutil -insert LSMinimumSystemVersion -string $min_ver $shortcut_info
-  # plutil -insert NSHumanReadableCopyright -string $copyright $shortcut_info
-  # plutil -insert LSEnvironment -string $env_vars $shortcut_info
+  plutil -insert CFBundleShortVersionString -string ${app_ver:-1.20.0} $shortcut_info
+  plutil -insert LSMinimumSystemVersion -string ${min_ver:-10.13} $shortcut_info
 
   # short core name
   unset match
