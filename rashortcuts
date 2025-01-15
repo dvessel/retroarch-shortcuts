@@ -52,11 +52,32 @@ p.error() { printf   "\e[0;31m%s\e[0m\n" $@ >&2 }
 output=${1:-.}
 
 app_support=~/Library/Application\ Support/RetroArch
+
 # Ensure the default template is located with this script.
 template=${template[-1]:-$(dirname `realpath $0`)/template}
 
-if [[ ! -d $template/Contents/MacOS ]]; then
-  p.error "Invalid template path: $template"
+if [[ ! -d $template ]]; then
+  p.error "Template not found: $template"
+  return 1
+fi
+if [[ ! -f $template/Contents/info.plist ]]; then
+  p.error "Check template: info.plist file not found."
+  return 1
+fi
+if [[ ! -f $template/Contents/MacOS/launcher ]]; then
+  p.error "Check template: launcher executable not found."
+  return 1
+fi
+
+# Find the RetroArch application directory. It must be spotlight searchable.
+# This is needed to find the version number and minimum system requirements.
+app_dir=`mdfind kMDItemCFBundleIdentifier = com.libretro.dist.RetroArch | head -n 1`
+if [[ -n $app_dir ]]; then
+  app_info=$app_dir/Contents/Info.plist
+  app_ver=`plutil -extract CFBundleShortVersionString raw $app_info`
+  min_ver=`plutil -extract LSMinimumSystemVersion raw $app_info`
+else
+  p.error "RetroArch not found."
   return 1
 fi
 
@@ -76,65 +97,61 @@ else
   playlistdir=$(eval printf %s $(
     awk -F= '/playlist_directory/ {print $2}' $app_support/config/retroarch.cfg
   ))
-  select=$(
-    for lpl in ${playlistdir/#\~/$HOME}/*.lpl; do echo $lpl:t:r; done | fzf
+  playlist=$(
+    for lpl in ${playlistdir/#\~/$HOME}/*.lpl; do
+      print -- "$lpl\t$lpl:t:r"
+    done | fzf --delimiter '\t' --with-nth 2 --preview "jq -r '.items[].label' {1}" | cut -f1
   )
-  if [[ -n $select ]]; then
-    playlist=${playlistdir/#\~/$HOME}/$select.lpl
-  else
+  if [[ ! -n $playlist ]]; then
     p.warn "Nothing selected."
     return
   fi
 fi
 
 if [[ ! -f $playlist ]]; then
-  p.error "Playlist does not exist: $playlist"
+  p.error "Playlist does not exist:" \
+          "- $playlist"
   return 1
 fi
 
-limit=`jq -r ".items | length" $playlist`
-cleanlist=$(
-  for (( i=0; i!=$limit; i++ )); do
-    # Scanning the history playlist can get spotty so check for .db_name.
-    # If .db_name exists, everything else should exist.
-    if [[ -n `jq -r ".items[$i].db_name" $playlist` ]]; then
-      echo "$i\t`jq -r ".items[$i].label" $playlist`"
-    fi
-  done
+# json list of cleaned up items.
+# Ensure .label and .db_name are present.
+items=$(
+  jq '.items[] | select(( .label | length > 0 ) and ( .db_name | length > 0 )) | {
+    system:.db_name|sub(".lpl"; ""),
+    label: .label,
+    gpath: .path,
+    cname: .core_name,
+    cpath: .core_path
+  }' $playlist | jq -n '[inputs]'
 )
 
+limit=`print -- $items | jq 'length'`
 if [[ -n ${process_all:-$process_existing} ]]; then
-  working_indices=( `print $cleanlist | cut -f1` )
+  work_indices=($(
+    for (( i=0; i!=$limit; i++ )); print -- $i
+  ))
 else
-  working_indices=(
-    `print $cleanlist | fzf --multi --delimiter='\t' --with-nth=2 | cut -f1`
-  )
+  work_indices=($(
+    for (( i=0; i!=$limit; i++ )); do
+      print -- "$i\t`print -- $items | jq -r ".[$i].label"`"
+    done | fzf --multi --delimiter '\t' --with-nth 2 | cut -f1
+  ))
 fi
 
-if [[ -z $working_indices ]]; then
+if [[ -z $work_indices ]]; then
   p.warn "Nothing to process."
   return
-fi
-
-app_dir=`mdfind kMDItemCFBundleIdentifier = com.libretro.dist.RetroArch | head -n 1`
-if [[ -n $app_dir ]]; then
-  app_info=$app_dir/Contents/Info.plist
-  app_ver=`plutil -extract CFBundleShortVersionString raw $app_info`
-  min_ver=`plutil -extract LSMinimumSystemVersion raw $app_info`
-else
-  p.error "RetroArch not found."
-  return 1
 fi
 
 default_cname=`jq -r ".default_core_name" $playlist`
 default_cpath=`jq -r ".default_core_path" $playlist`
 
 IFS=$'\n'
-for i in $working_indices; do
+for i in $work_indices; do
   read -d '' system label gpath cname cpath < <(
-    jq -r ".items[$i] | .db_name, .label, .path, .core_name, .core_path" $playlist
+    print -- $items | jq -r ".[$i] | .system, .label, .gpath, .cname, .cpath"
   )
-  system=${system:r}
   cname=${${cname/DETECT}:-$default_cname}
   cpath=${${cpath/DETECT}:-$default_cpath}
 
@@ -147,6 +164,7 @@ for i in $working_indices; do
     continue
   fi
 
+  # Create the app bundle.
   p.header "Creating \"$shortcut_app:t\""
 
   mkdir -p $shortcut_app
@@ -155,18 +173,11 @@ for i in $working_indices; do
     continue
   fi
 
-  shortcut_info=$shortcut_app/Contents/info.plist
-  plutil -insert CFBundleDisplayName -string $label $shortcut_info
-  plutil -insert CFBundleShortVersionString -string $app_ver $shortcut_info
-  plutil -insert LSMinimumSystemVersion -string $min_ver $shortcut_info
-  # plutil -insert NSHumanReadableCopyright -string $copyright $shortcut_info
-  # plutil -insert LSEnvironment -string $env_vars $shortcut_info
-
   # gpathextended: full path including possible archive content.
   # gpath: game path without the archive content pointers.
   # fname: name of the file itself.
   # aname: name of archive content. Empty if not present.
-  # label: name from database.
+  # label: name from playlist name field usually taken from a database.
 
   unset match
   [[ $gpath:t =~ "(.*\.[[:alnum:]]{2,3})\#(.*)\.[[:alnum:]]{2,4}$" ]]
@@ -175,42 +186,49 @@ for i in $working_indices; do
   fname=$gpath:t:r
   aname=$match[2]
 
+  # INFO.PLIST: Inherit info keys from RetroArch.
+  shortcut_info=$shortcut_app/Contents/info.plist
+  plutil -insert CFBundleDisplayName -string $label $shortcut_info
+  plutil -insert CFBundleShortVersionString -string $app_ver $shortcut_info
+  plutil -insert LSMinimumSystemVersion -string $min_ver $shortcut_info
+  # plutil -insert NSHumanReadableCopyright -string $copyright $shortcut_info
+  # plutil -insert LSEnvironment -string $env_vars $shortcut_info
+
   # short core name
   unset match
   [[ $cpath:t =~ "(.*)_libretro.dylib" ]]
   scname=$match[1]
 
+  # INFO.PLIST: Set bundle id.
   # Limit application bundle id to alphanumerics.
   bundleid=com.libretro
   for s in $scname $fname; bundleid+=.`printf %s $s | tr -cd '[:alnum:]'`
-  if [[ -n $scname ]] && \
-      plutil -insert CFBundleIdentifier -string $bundleid $shortcut_info
-  then
-    p.ok "BundleID: $bundleid"
-  else
-    p.error "BundleID not set."
-  fi
+  plutil -insert CFBundleIdentifier -string $bundleid $shortcut_info
+  p.ok "BundleID: $bundleid"
 
-  runnable=0
+  # LAUNCHER: Set game path.
   if [[ -f $gpath ]]; then
-    sed -i '' -E "s:#GAME#:$gpathextended:" $shortcut_app/Contents/MacOS/launcher && \
-      p.ok "Game: $gpathextended:t"
-
-    # Use simplified naming instead of fragile paths.
-    if [[ -n $scname ]]; then
-      sed -i '' -E "s:#CORE#:$scname:" $shortcut_app/Contents/MacOS/launcher && \
-        p.ok "Core: $cname" && \
-        runnable=1
-    else
-      p.error "The core could not be determined from the playlist. Do one of the following:" \
-              "- Set a default core for the playlist. (recommended)" \
-              "- Run the game in RetroArch at least once from the playlist."
-    fi
+    sed -i '' -E "s:#GAME#:$gpathextended:" $shortcut_app/Contents/MacOS/launcher
+    p.ok "Game: $gpathextended:t"
+  else
+    p.error "\"$gpath:t\" not found. \"$playlist:t\" pointing to a non-existing file:" \
+            "- $gpathextended"
+    continue
   fi
 
-  if ! (( $runnable )); then
-    p.error "Error assigning game path or core id."
+  # LAUNCHER: Set core string.
+  if [[ -n $scname ]]; then
+    sed -i '' -E "s:#CORE#:$scname:" $shortcut_app/Contents/MacOS/launcher
+    p.ok "Core: $cname"
+  else
+    p.error "Core could not be determined from the playlist. Do one of the following:" \
+            "- Set a default core for the playlist. (recommended)" \
+            "- Run the game in RetroArch at least once from the playlist."
     continue
+  fi
+
+  if [[ ! -f $cpath ]]; then
+    p.warn "Core could not be found. Will call with \"$scname\"."
   fi
 
   typeset -aU thumbnames=(
