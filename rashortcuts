@@ -146,9 +146,9 @@ for i in $work_indices; do
   cpath=${${cpath/DETECT}:-$default_cpath}
 
   # Make label file system safe.
-  # - replace ':' with ','
-  # - replace '/' with '-'.
-  shortcut_app=$output/${${label//:/,}//\//-}.app
+  # - replace ':' with '：' [Unicode U+FF1A] and '.'
+  # - replace '/' with '᜵'. [Unicode U+1735]
+  shortcut_app=$output/${${${label//: /：}//:/.}//\//᜵}.app
 
   if [[ -n $process_existing ]] && [[ ! -d $shortcut_app ]]; then
     continue
