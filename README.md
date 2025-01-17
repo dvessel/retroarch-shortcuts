@@ -2,7 +2,7 @@
 
 Creates MacOS app bundles to launch roms directly through the Finder.
 
-Requires fzf, jq and makeicns
+Requires [fzf](https://github.com/junegunn/fzf), [jq](https://jqlang.github.io/jq/) and [makeicns](http://www.amnoid.de/icns/makeicns.html).
 
 ```sh
 brew install fzf jq makeicns
@@ -20,7 +20,7 @@ If a playlist is not provided, fzf will list them automatically.
 
 Process without fzf game selection.
   --process-all       process all entries for a given playlist
-  --process-existing  re-process existing shortcuts in the working path
+  --process-existing  re-process existing shortcuts in the output path
 
 Last argument should point to the directory where the shortcut.app will be created.
 Defaults to the current working directory.
@@ -33,4 +33,30 @@ An optional template for building shortcuts. It defaults to the folder named
 
   -h, --help          view help.
 
+```
+
+## Example usage:
+
+Process all favorites. Last argument *(optional)* is the output path.
+
+```sh
+rashortcuts --favorites --process-all ~/Applications/RetroArch/Favorites
+```
+
+Process every game in all playlists grouped into folders named after the playlist.
+
+```sh
+for lpl in ~/Library/Application Support/RetroArch/playlists/*.lpl; do
+  rashortcuts --process-all --playlist $lpl ~/Applications/RetroArch/$lpl:t:r
+  # And if you have tag installed, apply Finder labels to tag it with the system
+  # it runs under. `brew install tag` and uncomment the next line.
+  # tag -a "${${lpl:t:r}// - /,}" $lpl:t:r/*.app
+done
+```
+
+Or just cd to the directory where you want to create shortcuts and pick a playlist and games when prompted. Type to search and use `tab` or `ctrl+i` to select multiple items and press `return`. Use `ctrl+j/k` or the arrow keys to navigate. `esc` to cancel.
+
+```sh
+cd ~/Applications/RetroArch
+rashortcuts
 ```
