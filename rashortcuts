@@ -67,6 +67,7 @@ for f in info.plist MacOS/launcher; [[ -f $template/Contents/$f ]] || {
 app_dir=`mdfind kMDItemCFBundleIdentifier = com.libretro.dist.RetroArch | head -n 1`
 if [[ -n $app_dir ]]; then
   app_info=$app_dir/Contents/Info.plist
+  app_icn=$app_dir/Contents/Resources/`plutil -extract CFBundleIconName raw $app_info`.icns
   app_ver=`plutil -extract CFBundleShortVersionString raw $app_info`
   min_ver=`plutil -extract LSMinimumSystemVersion raw $app_info`
 fi
@@ -258,8 +259,11 @@ for i in $work_indices; do
     if [[ -f $fallback ]]; then
       p.ok "retrosystem/$system-content.png -> $icnpath:t"
       makeicns -align bottom -in $fallback -out $icnpath
+    elif [[ ! -f $icnpath ]]; then
+      cp $app_icn $icnpath
+      p.warn "Using RetroArch's default $app_icn:t file."
     else
-      p.warn "Using the default $icnpath:t file."
+      p.warn "$icnpath:t not copied."
     fi
   fi
 
