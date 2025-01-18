@@ -257,7 +257,7 @@ for i in $work_indices; do
   if ! (( $thumbfound )); then
     fallback=$app_support/assets/xmb/retrosystem/png/$system-content.png
     if [[ -f $fallback ]]; then
-      p.ok "retrosystem/$system-content.png -> $icnpath:t"
+      p.warn "retrosystem/$system-content.png -> $icnpath:t"
       makeicns -align bottom -in $fallback -out $icnpath
     elif [[ ! -f $icnpath ]]; then
       cp $app_icn $icnpath
