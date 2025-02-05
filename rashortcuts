@@ -3,6 +3,7 @@
 # requires fzf, jq and makeicns
 
 zparseopts -D -E -F - \
+  -force-arch=force_arch \
   -process-all=process_all \
   -process-existing=process_existing \
   -favorites=_favorites \
@@ -31,6 +32,10 @@ Process without fzf game selection.
 
 Last argument should point to the directory where the shortcut.app will be created.
 Defaults to the current working directory.
+
+Set CPU architectures:
+  --force-arch        force the architecture to arm64 or x86_64 based on the core.
+                      Runs independently of Rosetta mode set for RetroArch.
 
 Custom templates:
   -t, --template      path/to/template-folder
@@ -194,6 +199,20 @@ for i in $work_indices; do
   for s in $scname $fname; bundleid+=.`printf %s $s | tr -cd '[:alnum:]'`
   plutil -insert CFBundleIdentifier -string $bundleid $shortcut_info
   p.ok "BundleID: $bundleid"
+
+  # LAUNCHER: Set architecture.
+  if [[ -n $force_arch ]]; then
+    carch=( `lipo -archs $cpath | tr ' ' '\n'` )
+    if [[ ${#carch[@]} == 2 ]] || [[ $carch == arm64 ]]; then
+      sed -i '' -E "s:#ARCH#:--arch arm64:" $shortcut_app/Contents/MacOS/launcher
+      p.ok "Arch: arm64"
+    elif [[ $carch == x86_64 ]]; then
+      sed -i '' -E "s:#ARCH#:--arch x86_64:" $shortcut_app/Contents/MacOS/launcher
+      p.ok "Arch: x86_64"
+    fi
+  else
+    sed -i '' -E "s:#ARCH#::" $shortcut_app/Contents/MacOS/launcher
+  fi
 
   # LAUNCHER: Set game path.
   if [[ -f $gpath ]]; then
