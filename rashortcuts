@@ -200,7 +200,7 @@ for i in $work_indices; do
   plutil -insert CFBundleIdentifier -string $bundleid $shortcut_info
   p.ok "BundleID: $bundleid"
 
-  # LAUNCHER: Set architecture.
+  # LAUNCHER: Set architecture. Depends on --force-arch flag.
   if [[ -n $force_arch ]]; then
     carch=( `lipo -archs $cpath | tr ' ' '\n'` )
     if [[ ${#carch[@]} == 2 ]] || [[ $carch == arm64 ]]; then
@@ -210,13 +210,11 @@ for i in $work_indices; do
       sed -i '' -E "s:#ARCH#:--arch x86_64:" $shortcut_app/Contents/MacOS/launcher
       p.ok "Arch: x86_64"
     fi
-  else
-    sed -i '' -E "s:#ARCH#::" $shortcut_app/Contents/MacOS/launcher
   fi
 
   # LAUNCHER: Set game path.
   if [[ -f $gpath ]]; then
-    sed -i '' -E "s:#GAME#:$gpathextended:" $shortcut_app/Contents/MacOS/launcher
+    sed -i '' -E "s:#GAME#:\"$gpathextended\":" $shortcut_app/Contents/MacOS/launcher
     p.ok "Game: $gpathextended:t"
   else
     p.error "\"$gpath:t\" not found. \"$playlist:t\" pointing to a non-existing file:" \
