@@ -265,7 +265,9 @@ for i in $work_indices; do
       if [[ -f $thumbpath ]]; then
         thumbfound=1
         p.ok "$set/$thumb.png -> $icnpath:t"
-        makeicns -align bottom -in $thumbpath -out $icnpath
+        sips --js $this_dir/rathumb.js $thumbpath --out ${TMPDIR}$thumb.png
+        makeicns -align bottom -in ${TMPDIR}$thumb.png -out $icnpath
+        rm ${TMPDIR}$thumb.png
         break 2
       fi
     done
