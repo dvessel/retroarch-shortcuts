@@ -57,9 +57,10 @@ p.error() { printf   "\e[0;31m%s\e[0m\n" $@ >&2 }
 output=${1:-.}
 
 app_support=~/Library/Application\ Support/RetroArch
+this_dir=$(dirname `realpath $0`)
 
 # Ensure the default template is located with this script.
-template=${template[-1]:-$(dirname `realpath $0`)/template}
+template=${template[-1]:-$this_dir/template}
 
 for f in info.plist MacOS/launcher; [[ -f $template/Contents/$f ]] || {
   p.error "Check template: $f:t file not found." \
