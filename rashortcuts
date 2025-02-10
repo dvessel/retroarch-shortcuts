@@ -1,6 +1,6 @@
 #!/usr/bin/env zsh
 
-# requires fzf, jq and makeicns
+# required: fzf,jq
 
 zparseopts -D -E -F - \
   -force-arch=force_arch \
@@ -265,9 +265,11 @@ for i in $work_indices; do
       if [[ -f $thumbpath ]]; then
         thumbfound=1
         p.ok "$set/$thumb.png -> $icnpath:t"
-        sips --js $this_dir/rathumb.js $thumbpath --out ${TMPDIR}$thumb.png
-        makeicns -align bottom -in ${TMPDIR}$thumb.png -out $icnpath
-        rm ${TMPDIR}$thumb.png
+        icnset=${TMPDIR}-appicon.iconset
+        mkdir -p $icnset
+        sips --js $this_dir/rathumb.js $thumbpath --out $icnset
+        iconutil --convert icns $icnset --output $icnpath
+        rm -rf $icnset
         break 2
       fi
     done
@@ -278,7 +280,11 @@ for i in $work_indices; do
     fallback=$app_support/assets/xmb/retrosystem/png/$system-content.png
     if [[ -f $fallback ]]; then
       p.warn "retrosystem/$system-content.png -> $icnpath:t"
-      makeicns -align bottom -in $fallback -out $icnpath
+      icnset=${TMPDIR}-appicon.iconset
+      mkdir -p $icnset
+      sips --js $this_dir/rathumb.js $fallback --out $icnset
+      iconutil --convert icns $icnset --output $icnpath
+      rm -rf $icnset
     elif [[ ! -f $icnpath ]]; then
       cp $app_icn $icnpath
       p.warn "Using RetroArch's default $app_icn:t file."
