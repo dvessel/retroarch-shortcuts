@@ -2,10 +2,10 @@
 
 Creates MacOS app bundles to launch roms directly through the Finder.
 
-Requires [fzf](https://github.com/junegunn/fzf), [jq](https://jqlang.github.io/jq/) and [makeicns](http://www.amnoid.de/icns/makeicns.html).
+Requires: [fzf](https://github.com/junegunn/fzf), [jq](https://jqlang.github.io/jq/).
 
 ```sh
-brew install fzf jq makeicns
+brew install fzf jq
 ```
 
 ```
@@ -24,6 +24,10 @@ Process without fzf game selection.
 
 Last argument should point to the directory where the shortcut.app will be created.
 Defaults to the current working directory.
+
+Set CPU architectures:
+  --force-arch        force the architecture to arm64 or x86_64 based on the core.
+                      Runs independently of Rosetta mode set for RetroArch.
 
 Custom templates:
   -t, --template      path/to/template-folder
