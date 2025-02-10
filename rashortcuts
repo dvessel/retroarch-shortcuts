@@ -267,7 +267,7 @@ for i in $work_indices; do
         p.ok "$set/$thumb.png -> $icnpath:t"
         icnset=${TMPDIR}-appicon.iconset
         mkdir -p $icnset
-        sips --js $this_dir/rathumb.js $thumbpath --out $icnset
+        sips --js $this_dir/makeicnset.js $thumbpath --out $icnset
         iconutil --convert icns $icnset --output $icnpath
         rm -rf $icnset
         break 2
@@ -282,7 +282,7 @@ for i in $work_indices; do
       p.warn "retrosystem/$system-content.png -> $icnpath:t"
       icnset=${TMPDIR}-appicon.iconset
       mkdir -p $icnset
-      sips --js $this_dir/rathumb.js $fallback --out $icnset
+      sips --js $this_dir/makeicnset.js $fallback --out $icnset
       iconutil --convert icns $icnset --output $icnpath
       rm -rf $icnset
     elif [[ ! -f $icnpath ]]; then
