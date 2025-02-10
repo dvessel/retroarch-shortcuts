@@ -45,7 +45,7 @@ iconSizes.forEach(img => {
     (canvas.height - scaled.height) - (img.shadowBlur * 1.5),
     scaled.width,
     scaled.height
-  );
+  )
 
   const output = new Output(canvas, sips.outputPath)
   output.name = img.name
