@@ -55,6 +55,15 @@ p.ok()    { printf   "\e[0;32m%s\e[0m\n" $@ }
 p.warn()  { printf   "\e[0;33m%s\e[0m\n" $@ }
 p.error() { printf   "\e[0;31m%s\e[0m\n" $@ >&2 }
 
+# Make .icns files.
+m.icns() {
+  local icnset=${TMPDIR}-AppIcon.iconset
+  mkdir $icnset
+  sips -j $this_dir/makeicnset.js $1 -o $icnset
+  iconutil -c icns $icnset -o $2
+  rm -rf $icnset
+}
+
 output=${1:-.}
 
 app_support=~/Library/Application\ Support/RetroArch
@@ -266,11 +275,7 @@ for i in $work_indices; do
       if [[ -f $thumbpath ]]; then
         thumbfound=1
         p.ok "$set/$thumb.png -> $icnpath:t"
-        icnset=${TMPDIR}-appicon.iconset
-        mkdir -p $icnset
-        sips --js $this_dir/makeicnset.js $thumbpath --out $icnset
-        iconutil --convert icns $icnset --output $icnpath
-        rm -rf $icnset
+        m.icns $thumbpath $icnpath
         break 2
       fi
     done
@@ -281,11 +286,7 @@ for i in $work_indices; do
     fallback=$app_support/assets/xmb/retrosystem/png/$system-content.png
     if [[ -f $fallback ]]; then
       p.warn "retrosystem/$system-content.png -> $icnpath:t"
-      icnset=${TMPDIR}-appicon.iconset
-      mkdir -p $icnset
-      sips --js $this_dir/makeicnset.js $fallback --out $icnset
-      iconutil --convert icns $icnset --output $icnpath
-      rm -rf $icnset
+      m.icns $fallback $icnpath
     elif [[ ! -f $icnpath ]]; then
       cp $app_icn $icnpath
       p.warn "Using RetroArch's default $app_icn:t file."
