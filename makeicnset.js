@@ -32,17 +32,17 @@ const iconSizes = [
 
 iconSizes.forEach(img => {
 
-  const scaled = sips.images[0].scaledSizeWithLongestEdge(img.length - (img.shadowBlur * 2))
+  const scaled = sips.images[0].scaledSizeWithLongestEdge(img.length-(img.shadowBlur*2))
   const canvas = new Canvas(img.length, img.length)
 
   canvas.shadowColor = 'rgba(0, 0, 0, 0.6)'
   canvas.shadowBlur = img.shadowBlur
-  canvas.shadowOffsetY = -(img.shadowBlur/2)
+  canvas.shadowOffsetY = -img.shadowBlur/2
 
   canvas.drawImage(
     sips.images[0],
-    (canvas.width - scaled.width) / 2,
-    (canvas.height - scaled.height) - (img.shadowBlur * 1.5),
+   (canvas.width-scaled.width)/2,
+   (canvas.height-scaled.height)-(img.shadowBlur*1.5),
     scaled.width,
     scaled.height
   )
