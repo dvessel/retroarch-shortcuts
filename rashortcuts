@@ -49,6 +49,7 @@ An optional template for building shortcuts. It defaults to the folder named
 return
 fi
 
+# Print with style.
 p.header(){ printf "\n\e[1;30m%s\e[0m\n" $@ }
 p.ok()    { printf   "\e[0;32m%s\e[0m\n" $@ }
 p.warn()  { printf   "\e[0;33m%s\e[0m\n" $@ }
