@@ -297,6 +297,4 @@ for i in $work_indices; do
 
   chmod +x $shortcut_app/Contents/MacOS/launcher
 
-  codesign --force --sign - $shortcut_app
-
 done
