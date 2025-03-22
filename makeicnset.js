@@ -24,19 +24,19 @@ const iconConfig = [
   { name: 'icon_16x16@2x.png',   size: 32,   shadowBlur: 0 },
   { name: 'icon_32x32.png',      size: 32,   shadowBlur: 0 },
   { name: 'icon_32x32@2x.png',   size: 64,   shadowBlur: 0 },
-  { name: 'icon_128x128.png',    size: 128,  shadowBlur: 2 },
-  { name: 'icon_128x128@2x.png', size: 256,  shadowBlur: 4 },
-  { name: 'icon_256x256.png',    size: 256,  shadowBlur: 4 },
-  { name: 'icon_256x256@2x.png', size: 512,  shadowBlur: 10 },
-  { name: 'icon_512x512.png',    size: 512,  shadowBlur: 10 },
-  { name: 'icon_512x512@2x.png', size: 1024, shadowBlur: 20 }
+  { name: 'icon_128x128.png',    size: 128,  shadowBlur: 4 },
+  { name: 'icon_128x128@2x.png', size: 256,  shadowBlur: 8 },
+  { name: 'icon_256x256.png',    size: 256,  shadowBlur: 8 },
+  { name: 'icon_256x256@2x.png', size: 512,  shadowBlur: 20 },
+  { name: 'icon_512x512.png',    size: 512,  shadowBlur: 20 },
+  { name: 'icon_512x512@2x.png', size: 1024, shadowBlur: 40 }
 ]
 
 iconConfig.forEach(cfg => {
   try {
 
     const canvas = new Canvas(cfg.size, cfg.size)
-    canvas.shadowColor = 'rgba(0, 0, 0, 0.6)'
+    canvas.shadowColor = 'rgba(0, 0, 0, 0.7)'
     canvas.shadowBlur = cfg.shadowBlur
     canvas.shadowOffsetY = -cfg.shadowBlur / 2 // Downward offset at half the blur radius.
 
