@@ -2,11 +2,12 @@
 
 zparseopts -D -E - -appendconfig:=apcfg {L,-libretro}:=core
 
-appendconfig=( $ZSH_SCRIPT:h:h/Resources/override.cfg $apcfg[-1] )
+appendconfig=( $ZSH_SCRIPT:h:h/Resources/override*.cfg $apcfg[-1] )
 
 argv=(
   #ARCH#
   -b com.libretro.dist.RetroArch
+  --new
   --args $@
   --appendconfig ${(j[|])appendconfig}
   --libretro ${core[-1]:-#CORE#}
