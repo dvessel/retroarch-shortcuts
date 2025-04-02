@@ -214,12 +214,15 @@ for i in $work_indices; do
   # LAUNCHER: Set architecture. Depends on --force-arch flag.
   if [[ -n $force_arch ]]; then
     carch=( `lipo -archs $cpath | tr ' ' '\n'` )
-    if [[ ${#carch[@]} == 2 ]] || [[ $carch == arm64 ]]; then
-      sed -i '' -E "s:#ARCH#:--arch arm64:" $shortcut_app/Contents/MacOS/launcher
-      p.ok "Arch: arm64"
-    elif [[ $carch == x86_64 ]]; then
+    if (( $carch[(Ie)`arch`] )); then
+      sed -i '' -E "s:#ARCH#:--arch `arch`:" $shortcut_app/Contents/MacOS/launcher
+      p.ok "Arch: `arch`"
+    elif (( $carch[(Ie)x86_64] )); then
+      # Fall back to x86_64.
       sed -i '' -E "s:#ARCH#:--arch x86_64:" $shortcut_app/Contents/MacOS/launcher
       p.ok "Arch: x86_64"
+    else
+      p.error "Arch: Could not be determined."
     fi
   fi
 
