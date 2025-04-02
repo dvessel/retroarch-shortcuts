@@ -225,7 +225,7 @@ for i in $work_indices; do
 
   # LAUNCHER: Set game path.
   if [[ -f $gpath ]]; then
-    sed -i '' -E "s:#GAME#:\"$gpathextended\":" $shortcut_app/Contents/MacOS/launcher
+    sed -i '' -E "s:#GAME#:\"$gpathextended:q\":" $shortcut_app/Contents/MacOS/launcher
     p.ok "Game: $gpathextended:t"
   else
     p.error "\"$gpath:t\" not found. \"$playlist:t\" pointing to a non-existing file:" \
@@ -235,7 +235,7 @@ for i in $work_indices; do
 
   # LAUNCHER: Set core string.
   if [[ -n $scname ]]; then
-    sed -i '' -E "s:#CORE#:$scname:" $shortcut_app/Contents/MacOS/launcher
+    sed -i '' -E "s:#CORE#:$scname:q:" $shortcut_app/Contents/MacOS/launcher
     p.ok "Core: $cname"
   else
     p.error "Core could not be determined from the playlist. Do one of the following:" \
