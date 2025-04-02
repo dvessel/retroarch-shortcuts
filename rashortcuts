@@ -64,6 +64,13 @@ m.icns() {
   rm -rf $icnset
 }
 
+if [[ -n $force_arch ]]; then
+  (( `sysctl -n sysctl.proc_translated` )) \
+    && p.error "Cannot forced arch under Rosetta." \
+    && return 1
+  arch=( `uname -m` )
+fi
+
 output=${1:-.}
 
 app_support=~/Library/Application\ Support/RetroArch
@@ -214,13 +221,10 @@ for i in $work_indices; do
   # LAUNCHER: Set architecture. Depends on --force-arch flag.
   if [[ -n $force_arch ]]; then
     carch=( `lipo -archs $cpath | tr ' ' '\n'` )
-    if (( $carch[(Ie)`arch`] )); then
-      sed -i '' -E "s:#ARCH#:--arch `arch`:" $shortcut_app/Contents/MacOS/launcher
-      p.ok "Arch: `arch`"
-    elif (( $carch[(Ie)x86_64] )); then
-      # Fall back to x86_64.
-      sed -i '' -E "s:#ARCH#:--arch x86_64:" $shortcut_app/Contents/MacOS/launcher
-      p.ok "Arch: x86_64"
+    farch=( ${${carch:*arch}:-$carch} )
+    if [[ $#farch == 1 ]]; then
+      sed -i '' -E "s:#ARCH#:--arch $farch:" $shortcut_app/Contents/MacOS/launcher
+      p.ok "Arch: $farch"
     else
       p.error "Arch: Could not be determined."
     fi
