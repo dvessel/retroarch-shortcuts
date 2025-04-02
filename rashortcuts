@@ -264,28 +264,24 @@ for i in $work_indices; do
   # For each name in $thumbnames:
   # - Chop off each occurance of `(.*)` or `[.*]` from the trailing end.
   # - Add each iteration to the list of naming candidates.
-  for _name in $thumbnames; do
-    while [[ $_name =~ "^(.+)(\(|\[)([^([]*)(\)|\]).*$" ]]; do
-      _name=$match[1]
-      # Discard trailing spaces.
-      thumbnames+=${_name%${_name##*[! ]}}
-    done
+  for _name in $thumbnames; while [[ $_name =~ "^(.+)(\(|\[)([^([]*)(\)|\]).*$" ]]; do
+    _name=$match[1]
+    # Discard trailing spaces.
+    thumbnames+=${_name%${_name##*[! ]}}
   done
 
   thumbfound=0
   icnpath=$shortcut_app/Contents/Resources/AppIcon.icns
-  for set in Boxarts Titles Snaps; do
-    for thumb in $thumbnames; do
-      # Mimic RetroArch's safe naming for thumbnails.
-      thumb=`printf %s $thumb | tr '&*/:\`<>?\|' '_'`
-      thumbpath=$app_support/thumbnails/$system/Named_$set/$thumb.png
-      if [[ -f $thumbpath ]]; then
-        thumbfound=1
-        p.ok "$set/$thumb.png -> $icnpath:t"
-        m.icns $thumbpath $icnpath
-        break 2
-      fi
-    done
+  for set in Boxarts Titles Snaps; for thumb in $thumbnames; do
+    # Mimic RetroArch's safe naming for thumbnails.
+    thumb=`printf %s $thumb | tr '&*/:\`<>?\|' '_'`
+    thumbpath=$app_support/thumbnails/$system/Named_$set/$thumb.png
+    if [[ -f $thumbpath ]]; then
+      thumbfound=1
+      p.ok "$set/$thumb.png -> $icnpath:t"
+      m.icns $thumbpath $icnpath
+      break 2
+    fi
   done
 
   # Use RetroSystem XMB theme content icon as a fallback.
