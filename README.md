@@ -64,3 +64,27 @@ Or just cd to the directory where you want to create shortcuts and pick a playli
 cd ~/Applications/RetroArch
 rashortcuts
 ```
+
+## Warning!
+
+Processing a large number of shortcuts outside of the Applications folder can delay its registration with *launch services*. This can cause an unending loop by nesessionmanager since it will detect the shortcut before it is registered. If the process `nehelper` endlessly takes up CPU time, it's because the shortcut has not been registered early enough. It will complain about the inability to cache UUID's.
+
+To see a log while this is happening, run:
+
+```sh
+log stream --info --predicate 'senderImagePath contains[cd] "NetworkExtension"'
+```
+
+You can force shortcuts to register with launch services, giving nesessionmanager a chance to cache UUID's by running:
+
+```sh
+/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister -R -f -v /path/to/shortcuts
+```
+
+The key `Architectures for arm64` must be removed from *com.apple.LaunchServices.plist* or it keep looping. Run the following command after `lsregister` has completed.
+
+```sh
+plutil -remove "Architectures for arm64" ~/Library/Preferences/com.apple.LaunchServices/com.apple.LaunchServices.plist
+```
+
+This is likely a MacOS bug (present as of 15.4.1). Ignore these instructions if `nehelper` is not taking excessive CPU time and the logs do not complain about caching UUID's.
