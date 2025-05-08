@@ -156,6 +156,11 @@ if [[ -z $work_indices ]]; then
   return
 fi
 
+lsregister=/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister
+if [[ ! -x $lsregister ]]; then
+  p.warn "lsregister not found."
+fi
+
 default_cname=`jq -r ".default_core_name" $playlist`
 default_cpath=`jq -r ".default_core_path" $playlist`
 
@@ -172,8 +177,9 @@ for i in $work_indices; do
   # - replace '/' with '᜵'. [Unicode U+1735]
   shortcut_app=$output/${${${label//: /：}//:/.}//\//᜵}.app
 
-  if [[ -n $process_existing ]] && [[ ! -d $shortcut_app ]]; then
-    continue
+  # Unregister with launch services.
+  if [[ -d $shortcut_app ]] && [[ -x $lsregister ]]; then
+    $lsregister -R -f -u $shortcut_app 2>/dev/null
   fi
 
   # Create the app bundle.
@@ -298,4 +304,8 @@ for i in $work_indices; do
 
   chmod +x $shortcut_app/Contents/MacOS/launcher
 
+  # Register with launch services.
+  if [[ -x $lsregister ]]; then
+    $lsregister -R -f $shortcut_app
+  fi
 done
