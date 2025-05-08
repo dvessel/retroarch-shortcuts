@@ -5,7 +5,6 @@
 zparseopts -D -E -F - \
   -force-arch=force_arch \
   -process-all=process_all \
-  -process-existing=process_existing \
   -favorites=_favorites \
   -history=_history \
   {p,-playlist}:=playlist \
@@ -28,7 +27,6 @@ If a playlist is not provided, fzf will list them automatically.
 
 Process without fzf game selection.
   --process-all       process all entries for a given playlist
-  --process-existing  re-process existing shortcuts in the output path
 
 Last argument should point to the directory where the shortcut.app will be created.
 Defaults to the current working directory.
@@ -141,7 +139,7 @@ items=$(
 )
 
 limit=`print -- $items | jq 'length'`
-if [[ -n ${process_all:-$process_existing} ]]; then
+if [[ -n $process_all ]]; then
   work_indices=($(
     for (( i=0; i!=$limit; i++ )); print -- $i
   ))
