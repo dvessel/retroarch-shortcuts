@@ -83,16 +83,6 @@ for f in info.plist MacOS/launcher; [[ -f $template/Contents/$f ]] || {
   return 1
 }
 
-# Find the RetroArch application directory. It must be spotlight searchable.
-# Attempt to find the version number and minimum system requirements.
-app_dir=`mdfind kMDItemCFBundleIdentifier = com.libretro.dist.RetroArch | head -n 1`
-if [[ -n $app_dir ]]; then
-  app_info=$app_dir/Contents/Info.plist
-  app_icn=$app_dir/Contents/Resources/`plutil -extract CFBundleIconName raw $app_info`.icns
-  app_ver=`plutil -extract CFBundleShortVersionString raw $app_info`
-  min_ver=`plutil -extract LSMinimumSystemVersion raw $app_info`
-fi
-
 if [[ -n $playlist ]]; then
   playlist=${playlist[-1]}
 else
@@ -197,8 +187,8 @@ for i in $work_indices; do
   # INFO.PLIST: Inherit info keys from RetroArch.
   shortcut_info=$shortcut_app/Contents/info.plist
   plutil -insert CFBundleDisplayName -string $label $shortcut_info
-  plutil -insert CFBundleShortVersionString -string ${app_ver:-1.20.0} $shortcut_info
-  plutil -insert LSMinimumSystemVersion -string ${min_ver:-10.13} $shortcut_info
+  plutil -insert CFBundleShortVersionString -string 1.20.0 $shortcut_info
+  plutil -insert LSMinimumSystemVersion -string 10.15 $shortcut_info
 
   # short core name
   unset match
@@ -284,9 +274,6 @@ for i in $work_indices; do
     if [[ -f $fallback ]]; then
       p.warn "retrosystem/$system-content.png -> $icnpath:t"
       m.icns $fallback $icnpath
-    elif [[ ! -f $icnpath ]]; then
-      cp $app_icn $icnpath
-      p.warn "Using RetroArch's default $app_icn:t file."
     else
       p.warn "$icnpath:t not copied."
     fi
