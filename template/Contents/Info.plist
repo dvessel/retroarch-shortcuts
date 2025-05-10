@@ -12,9 +12,12 @@
 	<string>APPL</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
-	<key>CFBundleSupportedPlatforms</key>
+	<key>LSArchitecturePriority</key>
 	<array>
-		<string>MacOSX</string>
+		<string>arm64</string>
+		<string>x86_64</string>
 	</array>
+	<key>LSRequiresNativeExecution</key>
+	<true/>
 </dict>
 </plist>
