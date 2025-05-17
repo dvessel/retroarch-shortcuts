@@ -184,12 +184,6 @@ for i in $work_indices; do
   fname=$gpath:t:r
   aname=$match[2]
 
-  # INFO.PLIST: Inherit info keys from RetroArch.
-  shortcut_info=$shortcut_app/Contents/info.plist
-  plutil -insert CFBundleDisplayName -string $label $shortcut_info
-  plutil -insert CFBundleShortVersionString -string 1.20.0 $shortcut_info
-  plutil -insert LSMinimumSystemVersion -string 10.15 $shortcut_info
-
   # short core name
   unset match
   [[ $cpath:t =~ "(.*)_libretro.dylib" ]]
@@ -199,7 +193,7 @@ for i in $work_indices; do
   # Limit application bundle id to alphanumerics.
   bundleid=com.libretro
   for s in $scname $fname; bundleid+=.`printf %s $s | tr -cd '[:alnum:]'`
-  plutil -insert CFBundleIdentifier -string $bundleid $shortcut_info
+  plutil -insert CFBundleIdentifier -string $bundleid $shortcut_app/Contents/info.plist
   p.ok "BundleID: $bundleid"
 
   # LAUNCHER: Set architecture. Depends on --force-arch flag.
