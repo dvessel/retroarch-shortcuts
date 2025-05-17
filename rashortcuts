@@ -55,7 +55,7 @@ p.error() { printf   "\e[0;31m%s\e[0m\n" $@ >&2 }
 
 # Make .icns files.
 m.icns() {
-  local icnset=${TMPDIR}-AppIcon.iconset
+  local icnset=${TMPDIR}`uuidgen`.iconset
   mkdir $icnset
   sips -j $this_dir/makeicnset.js $1 -o $icnset
   iconutil -c icns $icnset -o $2
