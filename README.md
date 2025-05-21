@@ -20,7 +20,6 @@ If a playlist is not provided, fzf will list them automatically.
 
 Process without fzf game selection.
   --process-all       process all entries for a given playlist
-  --process-existing  re-process existing shortcuts in the output path
 
 Last argument should point to the directory where the shortcut.app will be created.
 Defaults to the current working directory.
