@@ -1,6 +1,6 @@
 #!/usr/bin/env zsh
 
-# required: fzf,jq
+# required: fzf,jq,fileicon
 
 zparseopts -D -E -F - \
   -force-arch=force_arch \
@@ -274,5 +274,10 @@ for i in $work_indices; do
   fi
 
   chmod +x $shortcut_app/Contents/MacOS/launcher
+
+  # Work around Tahoe's icon jail.
+  if (( `sw_vers -productVersion` >= 26 )); then
+    fileicon set $shortcut_app $icnpath
+  fi
 
 done
