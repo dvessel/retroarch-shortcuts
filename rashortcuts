@@ -195,6 +195,8 @@ for i in $work_indices; do
   for s in $scname $fname; bundleid+=.`printf %s $s | tr -cd '[:alnum:]'`
   plutil -insert CFBundleIdentifier -string $bundleid $shortcut_app/Contents/info.plist
   p.ok "BundleID: $bundleid"
+  plutil -insert EmuSystem -string $system $shortcut_app/Contents/info.plist
+  p.ok "System: $system"
 
   # LAUNCHER: Set architecture. Depends on --force-arch flag.
   if [[ -n $force_arch ]]; then
@@ -211,16 +213,18 @@ for i in $work_indices; do
   # LAUNCHER: Set game path.
   if [[ -f $gpath ]]; then
     sed -i '' -E "s:#GAME#:\"$gpathextended:q\":" $shortcut_app/Contents/MacOS/launcher
-    p.ok "Game: $gpathextended:t"
+    plutil -insert ROMPath -string $gpath $shortcut_app/Contents/info.plist && \
+    p.ok "Game: $gpath:t"
   else
     p.error "\"$gpath:t\" not found. \"$playlist:t\" pointing to a non-existing file:" \
-            "- $gpathextended"
+            "- $gpath"
     continue
   fi
 
   # LAUNCHER: Set core string.
   if [[ -n $scname ]]; then
     sed -i '' -E "s:#CORE#:$scname:q:" $shortcut_app/Contents/MacOS/launcher
+    plutil -insert EmuCore -string $cname $shortcut_app/Contents/info.plist
     p.ok "Core: $cname"
   else
     p.error "Core could not be determined from the playlist. Do one of the following:" \
