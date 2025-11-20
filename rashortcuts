@@ -254,14 +254,14 @@ for i in $work_indices; do
 
   thumbfound=0
   icnpath=$shortcut_app/Contents/Resources/AppIcon.icns
-  for set in Boxarts Titles Snaps; for thumb in $thumbnames; do
+  for thumb in $thumbnames; do
     # Mimic RetroArch's safe naming for thumbnails.
     thumb=`printf %s $thumb | tr '&*/:\`<>?\|' '_'`
-    thumbpath=$app_support/thumbnails/$system/Named_$set/$thumb.png
+    thumbpath=$app_support/thumbnails/$system/Named_Boxarts/$thumb.png
     if [[ -f $thumbpath ]]; then
       thumbfound=1
-      p.ok "$set/$thumb.png -> $icnpath:t"
       m.icns $thumbpath $icnpath
+      p.ok "Boxart/$thumb.png -> $icnpath:t"
       break 2
     fi
   done
