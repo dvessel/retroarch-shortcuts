@@ -2,14 +2,15 @@
 
 Creates MacOS app bundles to launch roms directly through the Finder.
 
-Requires: [fzf](https://github.com/junegunn/fzf), [jq](https://jqlang.github.io/jq/).
+Requires: [fzf](https://github.com/junegunn/fzf), [jq](https://jqlang.github.io/jq/) and [fileicon](https://github.com/mklement0/fileicon) if you are running MacOS 26 (Tahoe or later).
 
+With [homebrew](https://brew.sh) installed, get the required dependencies.
 ```sh
-brew install fzf jq
+brew install fzf jq fileicon
 ```
 
 ```
-usage: rashortcuts [OPTION]... [OUTPUT]
+usage: rashortcuts [options] [output path]
 
 Playlists:
   --favorites         favorites playlist
@@ -52,3 +53,8 @@ Or just cd to the directory where you want to create shortcuts and pick a playli
 cd ~/Applications/RetroArch
 rashortcuts
 ```
+
+## Tips:
+
+- The script depends on existing playlists with valid entries and boxart for the app icon. The app icon will fall back to the assets within `xmb/retrosystem`.
+- If you have a large collection of games, avoid to process too many of them. I'm not sure why but MacOS can fall into a loop processing them which will eat CPU time and it doesn't go away until the shortcuts are deleted.
