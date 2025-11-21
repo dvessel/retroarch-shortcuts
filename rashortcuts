@@ -262,7 +262,7 @@ for i in $work_indices; do
       thumbfound=1
       m.icns $thumbpath $icnpath
       p.ok "Boxart/$thumb.png -> $icnpath:t"
-      break 2
+      break
     fi
   done
 
