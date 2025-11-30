@@ -5,6 +5,7 @@
 zparseopts -D -E -F - \
   -force-arch=force_arch \
   -process-all=process_all \
+  -process-existing=process_existing \
   -favorites=_favorites \
   -history=_history \
   {p,-playlist}:=playlist \
@@ -27,6 +28,8 @@ If a playlist is not provided, fzf will list them automatically.
 
 Process without fzf game selection.
   --process-all       process all entries for a given playlist
+  --process-existing  process entries for a given playlist that already exists in
+                      the output directory.
 
 Last argument should point to the directory where the shortcut.app will be created.
 Defaults to the current working directory.
@@ -129,7 +132,7 @@ items=$(
 )
 
 limit=`print -- $items | jq 'length'`
-if [[ -n $process_all ]]; then
+if [[ -n $process_all ]] || [[ -n $process_existing ]]; then
   work_indices=($(
     for (( i=0; i!=$limit; i++ )); print -- $i
   ))
@@ -161,6 +164,10 @@ for i in $work_indices; do
   # - replace ':' with '：' [Unicode U+FF1A] and '.'
   # - replace '/' with '᜵'. [Unicode U+1735]
   shortcut_app=$output/${${${label//: /：}//:/.}//\//᜵}.app
+
+  if [[ -n $process_existing ]] && [[ ! -d $shortcut_app ]]; then
+    continue
+  fi
 
   # Create the app bundle.
   p.header "Creating \"$shortcut_app:t\""
