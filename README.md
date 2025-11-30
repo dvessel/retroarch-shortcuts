@@ -10,7 +10,7 @@ brew install fzf jq fileicon
 ```
 
 ```
-usage: rashortcuts [options] [output path]
+usage: rashortcuts [OPTION]... [OUTPUT]
 
 Playlists:
   --favorites         favorites playlist
@@ -21,13 +21,15 @@ If a playlist is not provided, fzf will list them automatically.
 
 Process without fzf game selection.
   --process-all       process all entries for a given playlist
+  --process-existing  process entries for a given playlist that already exists in
+                      the output directory.
 
 Last argument should point to the directory where the shortcut.app will be created.
 Defaults to the current working directory.
 
 Set CPU architectures:
-  --force-arch        force the architecture to arm64 or x86_64 based on the core.
-                      Runs independently of Rosetta mode set for RetroArch.
+  --force-arch        force the architecture to match the core. This independent
+                      of Rosetta mode set for RetroArch.
 
 Custom templates:
   -t, --template      path/to/template-folder
