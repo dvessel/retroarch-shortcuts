@@ -198,18 +198,15 @@ for i in $work_indices; do
   plutil -insert CFBundleIdentifier -string $bundleid $shortcut_app/Contents/info.plist
   p.ok "BundleID: $bundleid"
 
-  # LAUNCHER: Set game path.
-  if [[ -f $gpath ]]; then
-    plutil -insert EmuROMPath -string $gpathextended $shortcut_app/Contents/info.plist
-    plutil -insert EmuSystem -string $system $shortcut_app/Contents/info.plist
-  else
+  # LAUNCHER: Set system, rom and core paths.
+  plutil -insert EmuSystem -string $system $shortcut_app/Contents/info.plist
+  plutil -insert EmuROMPath -string $gpathextended $shortcut_app/Contents/info.plist
+  plutil -insert EmuCorePath -string $cpath $shortcut_app/Contents/info.plist
+  if [[ ! -f $gpath ]]; then
     p.error "\"$gpath:t\" not found. \"$playlist:t\" pointing to a non-existing file:" \
             "- $gpath"
   fi
-
-  # LAUNCHER: Set core string.
   if [[ -f $cpath ]]; then
-    plutil -insert EmuCorePath -string $cpath $shortcut_app/Contents/info.plist
     p.ok "Core: $cname"
   else
     p.error "\"$cpath:t\" not found. \"$playlist:t\" pointing to a non-existing file:" \
