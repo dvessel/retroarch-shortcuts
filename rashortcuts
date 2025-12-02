@@ -3,7 +3,6 @@
 # required: fzf,jq,fileicon
 
 zparseopts -D -E -F - \
-  -force-arch=force_arch \
   -process-all=process_all \
   -process-existing=process_existing \
   -favorites=_favorites \
@@ -34,10 +33,6 @@ Process without fzf game selection.
 Last argument should point to the directory where the shortcut.app will be created.
 Defaults to the current working directory.
 
-Set CPU architectures:
-  --force-arch        force the architecture to match the core. This independent
-                      of Rosetta mode set for RetroArch.
-
 Custom templates:
   -t, --template      path/to/template-folder
 
@@ -64,13 +59,6 @@ m.icns() {
   iconutil -c icns $icnset -o $2
   rm -rf $icnset
 }
-
-if [[ -n $force_arch ]]; then
-  (( `sysctl -n sysctl.proc_translated` )) \
-    && p.error "Cannot forced arch under Rosetta." \
-    && return 1
-  arch=( `uname -m` )
-fi
 
 output=${1:-.}
 
@@ -160,6 +148,13 @@ for i in $work_indices; do
   cname=${${cname/DETECT}:-$default_cname}
   cpath=${${cpath/DETECT}:-$default_cpath}
 
+  if [[ -z $cpath ]]; then
+    p.error "Core could not be determined from the playlist. Do one of the following:" \
+            "- Set a default core for the playlist. (recommended)" \
+            "- Run the game in RetroArch at least once from the playlist."
+    continue
+  fi
+
   # Make label file system safe.
   # - replace ':' with '：' [Unicode U+FF1A] and '.'
   # - replace '/' with '᜵'. [Unicode U+1735]
@@ -203,43 +198,22 @@ for i in $work_indices; do
   plutil -insert CFBundleIdentifier -string $bundleid $shortcut_app/Contents/info.plist
   p.ok "BundleID: $bundleid"
 
-  # LAUNCHER: Set architecture. Depends on --force-arch flag.
-  if [[ -n $force_arch ]]; then
-    carch=( `lipo -archs $cpath | tr ' ' '\n'` )
-    farch=( ${${carch:*arch}:-$carch} )
-    if [[ $#farch == 1 ]]; then
-      sed -i '' -E "s:#ARCH#:--arch $farch:" $shortcut_app/Contents/MacOS/launcher
-      p.ok "Arch: $farch"
-    else
-      p.error "Arch: Could not be determined."
-    fi
-  fi
-
   # LAUNCHER: Set game path.
   if [[ -f $gpath ]]; then
-    sed -i '' -E "s:#GAME#:\"$gpathextended:q\":" $shortcut_app/Contents/MacOS/launcher
-    plutil -insert ROMPath -string $gpath $shortcut_app/Contents/info.plist
+    plutil -insert EmuROMPath -string $gpathextended $shortcut_app/Contents/info.plist
     plutil -insert EmuSystem -string $system $shortcut_app/Contents/info.plist
   else
     p.error "\"$gpath:t\" not found. \"$playlist:t\" pointing to a non-existing file:" \
             "- $gpath"
-    continue
   fi
 
   # LAUNCHER: Set core string.
-  if [[ -n $scname ]]; then
-    sed -i '' -E "s:#CORE#:$scname:q:" $shortcut_app/Contents/MacOS/launcher
-    plutil -insert EmuCore -string $cname $shortcut_app/Contents/info.plist
+  if [[ -f $cpath ]]; then
+    plutil -insert EmuCorePath -string $cpath $shortcut_app/Contents/info.plist
     p.ok "Core: $cname"
   else
-    p.error "Core could not be determined from the playlist. Do one of the following:" \
-            "- Set a default core for the playlist. (recommended)" \
-            "- Run the game in RetroArch at least once from the playlist."
-    continue
-  fi
-
-  if [[ ! -f $cpath ]]; then
-    p.warn "Core could not be found. Will call with \"$scname\"."
+    p.error "\"$cpath:t\" not found. \"$playlist:t\" pointing to a non-existing file:" \
+            "- $cpath"
   fi
 
   typeset -aU thumbnames=(

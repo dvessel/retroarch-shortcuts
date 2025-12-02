@@ -1,16 +1,23 @@
 #!/usr/bin/env zsh
 
-zparseopts -D -E - -appendconfig:=apcfg {L,-libretro}:=core
+local rdir info cfgs core rom arch
 
-appendconfig=( $ZSH_SCRIPT:h:h/Resources/override*.cfg $apcfg[-1] )
+rdir=${0:h:h}/Resources
+info=${0:h:h}/info.plist
 
-argv=(
-  #ARCH#
-  -b com.libretro.dist.RetroArch
-  --new
-  --args $@
-  --appendconfig ${(j[|])appendconfig}
-  --libretro ${core[-1]:-#CORE#}
-  #GAME#
-)
-open $@
+cfgs=( $rdir/*.cfg )
+core=`plutil -extract EmuCorePath raw $info`
+rom=`plutil -extract EmuROMPath raw $info`
+
+if [[ -f $rdir/$core:t ]]; then
+  core=$rdir/$core:t
+fi
+for r in $rom:t $rom:h:t/$rom:t; [[ -f $rdir/${r%\#*} ]] && {
+  rom=$rdir/$r
+}
+
+a=( `uname -m` ) b=( `lipo -archs $core` ) c=( ${${b:*a}:-$b} )
+if [[ $#c == 1 ]]; then
+  arch=( --arch $c )
+fi
+open $arch -b com.libretro.dist.RetroArch --args $@ --appendconfig ${(j[|])cfgs} -L $core $rom

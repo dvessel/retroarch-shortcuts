@@ -27,10 +27,6 @@ Process without fzf game selection.
 Last argument should point to the directory where the shortcut.app will be created.
 Defaults to the current working directory.
 
-Set CPU architectures:
-  --force-arch        force the architecture to match the core. This independent
-                      of Rosetta mode set for RetroArch.
-
 Custom templates:
   -t, --template      path/to/template-folder
 
