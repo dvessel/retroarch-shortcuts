@@ -31,7 +31,9 @@ Custom templates:
   -t, --template      path/to/template-folder
 
 An optional template for building shortcuts. It defaults to the folder named
-"template" located in the same directory as this script.
+"template" located in the same directory as this script. If a hidden .template
+folder exists in the output directory, it will be used instead but --template
+will always take presidence.
 
   -h, --help          view help.
 
