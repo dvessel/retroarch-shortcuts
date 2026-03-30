@@ -54,7 +54,7 @@ cd ~/Applications/RetroArch
 rashortcuts
 ```
 
-## Tips:
+## Notes:
 
 - The script depends on existing playlists with valid entries and boxart for the app icon. The app icon will fall back to the assets within `xmb/retrosystem`.
-- If you have a large collection of games, avoid to process too many of them. I'm not sure why but MacOS can fall into a loop processing them which will eat CPU time and it doesn't go away until the shortcuts are deleted.
+- Using `--process-existing` is primarily meant to update existing shortcuts but it depends on the name not being changed. This can happen when renaming a game in the playlist or a rescan with updated databases.
