@@ -1,23 +1,34 @@
 #!/usr/bin/env zsh
 
-local rdir info cfgs core rom arch
-
-rdir=${0:h:h}/Resources
-info=${0:h:h}/info.plist
-
-cfgs=( $rdir/*.cfg )
-core=`plutil -extract EmuCorePath raw $info`
-rom=`plutil -extract EmuROMPath raw $info`
-
-if [[ -f $rdir/$core:t ]]; then
-  core=$rdir/$core:t
+# Abort if RetroArch is already running.
+if pgrep -x RetroArch &> /dev/null; then
+	exit
 fi
-for r in $rom:t $rom:h:t/$rom:t; [[ -f $rdir/${r%\#*} ]] && {
-  rom=$rdir/$r
+
+contents=${ZSH_SCRIPT:h:h}
+
+core=`plutil -extract EmuCorePath raw $contents/info.plist`
+if [[ -f $contents/Frameworks/$core:t ]]; then
+  core=$contents/Frameworks/$core:t
+fi
+
+rom=`plutil -extract EmuROMPath raw $contents/info.plist`
+for r in $rom:t $rom:h:t/$rom:t; [[ -f $resources/${r%\#*} ]] && {
+  rom=$resources/$r
 }
 
+# a: hardware arch. arm64 or x86_64
+# b: core arch. arm64 and/or x86_64
+# c: hardware aligned core arch with fallsback. arm64 or x86_64
+# `open` called with arch flag supported by the core.
+# Required for x86 cores on arm hardware.
 a=( `uname -m` ) b=( `lipo -archs $core` ) c=( ${${b:*a}:-$b} )
-if [[ $#c == 1 ]]; then
-  arch=( --arch $c )
-fi
-open $arch -b com.libretro.dist.RetroArch --args $@ --appendconfig ${(j[|])cfgs} -L $core $rom
+largs=( --arch $c )
+
+config=( $contents/Resources/*.cfg )
+
+open $largs -b com.libretro.dist.RetroArch  --args $@ --appendconfig ${(j[|])config} -L $core $rom
+
+for sh in $contents/Scripts/post-boot*.sh(N); do
+  source $sh
+done
