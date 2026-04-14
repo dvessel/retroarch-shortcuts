@@ -1,7 +1,5 @@
 #!/usr/bin/env zsh
 
-# required: fzf,jq,fileicon
-
 zparseopts -D -E -F - \
   -process-all=process_all \
   -process-existing=process_existing \
@@ -53,6 +51,22 @@ p.ok()    { printf   "\e[0;32m%s\e[0m\n" $@ }
 p.warn()  { printf   "\e[0;33m%s\e[0m\n" $@ }
 p.error() { printf   "\e[0;31m%s\e[0m\n" $@ >&2 }
 
+# Print os version as a float.
+p.os_version() {
+  local os_version=`sw_vers -productVersion`
+  float os_version=${os_version%%.*}.${${os_version#*.}//./}
+  print -- $os_version
+}
+
+# Check requirements.
+c.requirements() {
+  for r in $@; if ! type $r &>/dev/null; then
+    p.error "$r is required."
+    __s=1
+  fi
+  return ${__s:-0}
+}
+
 # Make .icns files.
 m.icns() {
   local icnset=${TMPDIR}`uuidgen`.iconset
@@ -61,6 +75,12 @@ m.icns() {
   iconutil -c icns $icnset -o $2
   rm -rf $icnset
 }
+
+# check for all requirements before exiting.
+() {
+  c.requirements fzf jq
+  (( `p.os_version` >= 26 )) && c.requirements fileicon
+} || return 1
 
 output=${1:-.}
 
@@ -265,7 +285,7 @@ for i in $work_indices; do
   chmod +x $shortcut_app/Contents/MacOS/launcher
 
   # Work around Tahoe's icon jail.
-  if (( `sw_vers -productVersion` >= 26 )); then
+  if (( `p.os_version` >= 26 )); then
     if fileicon set -q $shortcut_app $icnpath; then
       p.ok "Freed from icon jail"
     fi
