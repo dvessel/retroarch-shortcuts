@@ -202,11 +202,11 @@ for i in $work_indices; do
     continue
   fi
 
-  # gpathextended: full path including possible archive content.
-  # gpath: game path without the archive content pointers.
-  # fname: name of the file itself.
-  # aname: name of archive content. Empty if not present.
-  # label: name from playlist name field usually taken from a database.
+  # gpathextended:full game path including possible archive pointer.
+  # gpath: game path without the archived pointer.
+  # fname: name of the game file itself.
+  # aname: name of archive pointer. Empty if not present.
+  # label: name from playlist label field usually taken from a database.
 
   unset match
   [[ $gpath:t =~ "(.*\.[[:alnum:]]{2,3})\#(.*)\.[[:alnum:]]{2,4}$" ]]
@@ -291,4 +291,7 @@ for i in $work_indices; do
     fi
   fi
 
+  if [[ -f $template/post-process.sh ]]; then
+    source $template/post-process.sh
+  fi
 done

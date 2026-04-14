@@ -1,0 +1,30 @@
+#!/usr/bin/env zsh
+
+# Sourced from rashortcuts for additional processing.
+# Do not modify directly. Copy the whole template to the output directory and
+# rename it .template or point to it by calling rashortcuts with --template.
+#
+# Useful helper functions:
+# - p.header: print header.
+# - p.ok: print ok message.
+# - p.warn: print warning message.
+# - p.error: print error message.
+# - p.os_version: print os version as a float.
+# - c.requirements: check for required cli tools.
+# - m.icn <input.png> <output.icns>: make icon files.
+#
+# Useful variables:
+# - shortcut_app: path to the shortcut.app being created.
+# - tempate: path to template.
+# - bundleid: bundle identifier for the shortcut.app being created.
+# - system: the system being emulated.
+# - cpath: core path.
+# - cname: core name.
+# - scname: short core name.
+# - gpathextended:full game path including possible archive pointer.
+# - gpath: game path without the archived pointer.
+# - fname: name of the game file itself.
+# - aname: name of archive pointer. Empty if not present.
+# - label: name from playlist label field usually taken from a database.
+# - thumbpath: path to the thumbnail image for the shortcut.app icon.
+# - thumbfound: whether or not a thumbnail image was found.
