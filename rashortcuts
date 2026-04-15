@@ -203,9 +203,11 @@ for i in $work_indices; do
   # Create the app bundle.
   p.header "Creating \"$shortcut_app:t\""
 
-  mkdir -p $shortcut_app
-  if ! cp -R $template/Contents $shortcut_app; then
+  shortcut_tmp=${TMPDIR}$0:t/$shortcut_app:t
+  mkdir -p $shortcut_tmp
+  if ! cp -R $template/Contents $shortcut_tmp; then
     p.error "Could not create \"$shortcut_app:t\"."
+    rm -rf $shortcut_tmp
     continue
   fi
 
@@ -231,22 +233,26 @@ for i in $work_indices; do
   # Limit application bundle id to alphanumerics.
   bundleid=com.libretro
   for s in $scname $fname; bundleid+=.`printf %s $s | tr -cd '[:alnum:]'`
-  plutil -insert CFBundleIdentifier -string $bundleid $shortcut_app/Contents/info.plist
+  plutil -insert CFBundleIdentifier -string $bundleid $shortcut_tmp/Contents/info.plist
   p.ok "BundleID: $bundleid"
 
   # LAUNCHER: Set system, rom and core paths.
-  plutil -insert EmuSystem -string $system $shortcut_app/Contents/info.plist
-  plutil -insert EmuROMPath -string $gpathextended $shortcut_app/Contents/info.plist
-  plutil -insert EmuCorePath -string $cpath $shortcut_app/Contents/info.plist
+  plutil -insert EmuSystem -string $system $shortcut_tmp/Contents/info.plist
+  plutil -insert EmuROMPath -string $gpathextended $shortcut_tmp/Contents/info.plist
+  plutil -insert EmuCorePath -string $cpath $shortcut_tmp/Contents/info.plist
   if [[ ! -f $gpath ]]; then
     p.error "\"$gpath:t\" not found. \"$playlist:t\" pointing to a non-existing file:" \
             "- $gpath"
+    rm -rf $shortcut_tmp
+    continue
   fi
   if [[ -f $cpath ]]; then
     p.ok "Core: $cname"
   else
     p.error "\"$cpath:t\" not found. \"$playlist:t\" pointing to a non-existing file:" \
             "- $cpath"
+    rm -rf $shortcut_tmp
+    continue
   fi
 
   typeset -aU thumbnames=(
@@ -265,7 +271,7 @@ for i in $work_indices; do
   done
 
   thumbfound=0
-  icnpath=$shortcut_app/Contents/Resources/AppIcon.icns
+  icnpath=$shortcut_tmp/Contents/Resources/AppIcon.icns
   for thumb in $thumbnames; do
     # Mimic RetroArch's safe naming for thumbnails.
     thumb=`printf %s $thumb | tr '&*/:\`<>?\|' '_'`
@@ -289,16 +295,22 @@ for i in $work_indices; do
     fi
   fi
 
-  chmod +x $shortcut_app/Contents/MacOS/launcher
-
-  # Work around Tahoe's icon jail.
-  if (( `p.os_version` >= 26 )); then
-    if fileicon set -q $shortcut_app $icnpath; then
-      p.ok "Freed from icon jail"
-    fi
-  fi
-
   if [[ -f $template/post-process.sh ]]; then
+    p.warn "Post-processing from: ${${template}/#$HOME/~}"
     source $template/post-process.sh
   fi
+
+  mkdir -p $shortcut_app
+  if cp -R $shortcut_tmp/Contents $shortcut_app; then
+    p.ok "Finalizing.."
+    chmod +x $shortcut_app/Contents/MacOS/launcher
+    # Work around Tahoe's icon jail.
+    if (( `p.os_version` >= 26 )) && fileicon set -q $shortcut_app $icnpath; then
+      p.ok "Freed from icon jail"
+    fi
+  else
+    p.error "Unable to finalize \"$shortcut_app:t\"."
+  fi
+  rm -rf $shortcut_tmp
+
 done

@@ -14,7 +14,8 @@
 # - m.icn <input.png> <output.icns>: make icon files.
 #
 # Useful variables:
-# - shortcut_app: path to the shortcut.app being created.
+# - shortcut_app: path to target shortcut.app. usually empty until its finalized.
+# - shortcut_tmp: path to shortcut actively being processed.
 # - tempate: path to template.
 # - bundleid: bundle identifier for the shortcut.app being created.
 # - system: the system being emulated.
