@@ -87,8 +87,10 @@ output=${1:-.}
 app_support=~/Library/Application\ Support/RetroArch
 this_dir=$(dirname `realpath $0`)
 
-# use hidden .template if it exists in the output directory and -t is not
-# defined. otherwise, fallback to the default.
+# order of prescidence:
+# - calling with -t|--template <template/path>
+# - hidden .template folder in the $output directory.
+# - default template provided with the script.
 if [[ -n $template[-1] ]]; then
   template=$template[-1]
 elif [[ -d $output/.template ]]; then
@@ -164,6 +166,11 @@ fi
 if [[ -z $work_indices ]]; then
   p.warn "Nothing to process."
   return
+fi
+
+# hidden templates can be easily forgotten.
+if [[ $template =~ "\/\." ]]; then
+  p.warn "Using template: ${${template:a}/#$HOME/~}"
 fi
 
 default_cname=`jq -r ".default_core_name" $playlist`
