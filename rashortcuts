@@ -206,7 +206,7 @@ for i in $work_indices; do
   shortcut_tmp=${TMPDIR}$0:t/$shortcut_app:t
   mkdir -p $shortcut_tmp
   if ! cp -R $template/Contents $shortcut_tmp; then
-    p.error "Could not create \"$shortcut_app:t\"."
+    p.error "Could not create $shortcut_app:t."
     rm -rf $shortcut_tmp
     continue
   fi
@@ -241,7 +241,7 @@ for i in $work_indices; do
   plutil -insert EmuROMPath -string $gpathextended $shortcut_tmp/Contents/info.plist
   plutil -insert EmuCorePath -string $cpath $shortcut_tmp/Contents/info.plist
   if [[ ! -f $gpath ]]; then
-    p.error "\"$gpath:t\" not found. \"$playlist:t\" pointing to a non-existing file:" \
+    p.error "$gpath:t not found. $playlist:t pointing to a non-existing file:" \
             "- $gpath"
     rm -rf $shortcut_tmp
     continue
@@ -249,7 +249,7 @@ for i in $work_indices; do
   if [[ -f $cpath ]]; then
     p.ok "Core: $cname"
   else
-    p.error "\"$cpath:t\" not found. \"$playlist:t\" pointing to a non-existing file:" \
+    p.error "$cpath:t not found. $playlist:t pointing to a non-existing file:" \
             "- $cpath"
     rm -rf $shortcut_tmp
     continue
@@ -309,7 +309,7 @@ for i in $work_indices; do
       p.ok "Freed from icon jail"
     fi
   else
-    p.error "Unable to finalize \"$shortcut_app:t\"."
+    p.error "Unable to finalize $shortcut_app:t."
   fi
   rm -rf $shortcut_tmp
 
