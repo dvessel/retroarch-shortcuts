@@ -1,0 +1,64 @@
+[{
+  "systems": [
+    "Nintendo - Game Boy Advance"
+  ],
+  "refresh": 59.73
+},
+{
+  "systems": [
+    "Sony - PlayStation"
+  ],
+  "refresh": 59.81
+},
+{
+  "systems": [
+    "NEC - PC Engine - TurboGrafx 16",
+    "NEC - PC Engine CD - TurboGrafx-CD",
+    "NEC - PC Engine SuperGrafx",
+    "Nintendo - Nintendo DS",
+    "Sega - Saturn"
+  ],
+  "refresh": 59.82
+},
+{
+  "systems": [
+    "Sega - Master System - Mark III",
+    "Sega - Mega Drive - Genesis",
+    "Sega - Mega-CD - Sega CD"
+  ],
+  "refresh": 59.92
+},
+{
+  "systems": [
+    "Sega - Dreamcast",
+    "Sega - Naomi",
+    "Sega - Naomi 2"
+  ],
+  "refresh": 59.93
+},
+{
+  "systems": [
+    "Atomiswave",
+    "Nintendo - GameCube",
+    "Nintendo - Wii",
+    "Sony - PlayStation 2",
+    "Sony - PlayStation Portable"
+  ],
+  "refresh": 59.94
+},
+{
+  "systems": [
+    "MAME",
+    "Nintendo - Nintendo 3DS",
+    "Nintendo - Nintendo 64"
+  ],
+  "refresh": 60.00
+},
+{
+  "systems": [
+    "Nintendo - Family Computer Disk System",
+    "Nintendo - Nintendo Entertainment System",
+    "Nintendo - Super Nintendo Entertainment System"
+  ],
+  "refresh": 60.10
+}]
