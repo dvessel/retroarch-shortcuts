@@ -2,19 +2,23 @@
 
 # Abort if RetroArch is already running.
 if pgrep -x RetroArch &> /dev/null; then
-	exit
+  exit 1
 fi
 
 contents=${ZSH_SCRIPT:h:h}
 
 core=`plutil -extract EmuCorePath raw $contents/info.plist`
+# Cores can be self-contained within `Contents/Frameworks`.
 if [[ -f $contents/Frameworks/$core:t ]]; then
   core=$contents/Frameworks/$core:t
 fi
 
 rom=`plutil -extract EmuROMPath raw $contents/info.plist`
-for r in $rom:t $rom:h:t/$rom:t; [[ -f $resources/${r%\#*} ]] && {
-  rom=$resources/$r
+# Roms can be self-contained within `Contents/Resources` and checks for containing
+# folder naming for config overrides. For example:
+# - Contents/Resources/NEC SuperGrafx/Dai-Makaimura (Japan).zip
+for r in $rom:t $rom:h:t/$rom:t; [[ -f $contents/Resources/${r%\#*} ]] && {
+  rom=$contents/Resources/$r
 }
 
 # a: hardware arch. arm64 or x86_64
