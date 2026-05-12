@@ -295,11 +295,6 @@ for i in $work_indices; do
     fi
   fi
 
-  if [[ -f $template/post-process.sh ]]; then
-    p.warn "Post-processing from: ${${template}/#$HOME/~}"
-    source $template/post-process.sh
-  fi
-
   mkdir -p $shortcut_app
   if cp -R $shortcut_tmp/Contents $shortcut_app; then
     p.ok "Finalizing.."

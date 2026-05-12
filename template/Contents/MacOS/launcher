@@ -32,7 +32,3 @@ largs=( --arch $c )
 config=( $contents/Resources/*.cfg )
 
 open $largs -b com.libretro.dist.RetroArch  --args $@ --appendconfig ${(j[|])config} -L $core $rom
-
-for sh in $contents/Scripts/post-boot*.sh(N); do
-  source $sh
-done
