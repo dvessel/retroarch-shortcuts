@@ -47,7 +47,7 @@ fi
 
 # Print with style.
 p.header(){ printf "\n\e[1;30m%s\e[0m\n" $@ }
-p.ok()    { printf   "\e[0;32m%s\e[0m\n" $@ }
+p.ok()    { printf   "\e[0;30m%s\e[0m\n" $@ }
 p.warn()  { printf   "\e[0;33m%s\e[0m\n" $@ }
 p.error() { printf   "\e[0;31m%s\e[0m\n" $@ >&2 }
 
@@ -201,10 +201,9 @@ for i in $work_indices; do
   fi
 
   # Create the app bundle.
-  p.header "Creating \"$shortcut_app:t\""
+  p.header "$shortcut_app:t"
 
-  shortcut_tmp=${TMPDIR}$0:t/$shortcut_app:t
-  mkdir -p $shortcut_tmp
+  shortcut_tmp=`mktemp -dt rashortcut`
   if ! cp -R $template/Contents $shortcut_tmp; then
     p.error "Could not create $shortcut_app:t."
     rm -rf $shortcut_tmp
@@ -213,7 +212,9 @@ for i in $work_indices; do
 
   # gpathextended:full game path including possible archive pointer.
   # gpath: game path without the archived pointer.
-  # fname: name of the game file itself.
+  # gcont: game container or parent directory name.
+  # gfile: game file name with extension.
+  # fname: name of the game file without extension.
   # aname: name of archive pointer. Empty if not present.
   # label: name from playlist label field usually taken from a database.
 
@@ -221,35 +222,52 @@ for i in $work_indices; do
   [[ $gpath:t =~ "(.*\.[[:alnum:]]{2,3})\#(.*)\.[[:alnum:]]{2,4}$" ]]
   gpathextended=$gpath
   gpath=$gpath:h/${match[1]:-$gpath:t}
+  gcont=$gpath:h:t
+  gfile=$gpath:t
   fname=$gpath:t:r
-  aname=$match[2]
-
-  # short core name
-  unset match
-  [[ $cpath:t =~ "(.*)_libretro.dylib" ]]
-  scname=$match[1]
+  aname=${match[2]}
 
   # INFO.PLIST: Set bundle id.
-  # Limit application bundle id to alphanumerics.
   bundleid=com.libretro
-  for s in $scname $fname; bundleid+=.`printf %s $s | tr -cd '[:alnum:]'`
+  # Limit application bundle id to alphanumerics and '-', all lower case.
+  # Cut off everything before the first '- ' in system.
+  # Cut off everything after ' (' and ' [' from the file name.
+  for s in ${system#*- } ${${fname%% \(*}%% \[*}; bundleid+=.`printf %s ${(L)s} | tr -cd '[:alnum:]-'`
   plutil -insert CFBundleIdentifier -string $bundleid $shortcut_tmp/Contents/info.plist
   p.ok "BundleID: $bundleid"
 
-  # LAUNCHER: Set system, rom and core paths.
+  # LAUNCHER: Set system, rom and core.
   plutil -insert EmuSystem -string $system $shortcut_tmp/Contents/info.plist
-  plutil -insert EmuROMPath -string $gpathextended $shortcut_tmp/Contents/info.plist
-  plutil -insert EmuCorePath -string $cpath $shortcut_tmp/Contents/info.plist
-  if [[ ! -f $gpath ]]; then
-    p.error "$gpath:t not found. $playlist:t pointing to a non-existing file:" \
+  plutil -insert EmuROM -string $gcont/$gpathextended:t $shortcut_tmp/Contents/info.plist
+  plutil -insert EmuCore -string ${cpath:t} $shortcut_tmp/Contents/info.plist
+
+  if [[ -f $shortcut_app/Contents/Resources/$gcont/$gfile &&
+      ! -L $shortcut_app/Contents/Resources/$gcont/$gfile ]]
+  then
+    # Do nothing. ROM already exists and is not a symlink.
+    p.ok "Game: $gfile - contained"
+  elif [[ -f $gpath ]]; then
+    mkdir -p $shortcut_tmp/Contents/Resources/$gcont
+    ln -s $gpath $shortcut_tmp/Contents/Resources/$gcont
+    p.ok "Game: $gfile - linked"
+  else
+    p.error "$gfile not found. $playlist:t pointing to a non-existing rom:" \
             "- $gpath"
     rm -rf $shortcut_tmp
     continue
   fi
-  if [[ -f $cpath ]]; then
-    p.ok "Core: $cname"
+
+  if [[ -f $shortcut_app/Contents/Frameworks/$cpath:h &&
+      ! -L $shortcut_app/Contents/Frameworks/$cpath:h ]]
+  then
+    # Do nothing. Core already exists and is not a symlink.
+    p.ok "Core: ${cpath:t} - contained"
+  elif [[ -f $cpath ]]; then
+    mkdir -p $shortcut_tmp/Contents/Frameworks
+    ln -s $cpath $shortcut_tmp/Contents/Frameworks
+    p.ok "Core: ${cpath:t} - linked"
   else
-    p.error "$cpath:t not found. $playlist:t pointing to a non-existing file:" \
+    p.error "$cpath:t not found. $playlist:t pointing to a non-existing core:" \
             "- $cpath"
     rm -rf $shortcut_tmp
     continue
@@ -270,38 +288,44 @@ for i in $work_indices; do
     thumbnames+=${_name%${_name##*[! ]}}
   done
 
-  thumbfound=0
+  appicon=$shortcut_app/Contents/Resources/AppIcon.icns
   icnpath=$shortcut_tmp/Contents/Resources/AppIcon.icns
+  unset thumbpath
+  update_icon=0
   for thumb in $thumbnames; do
     # Mimic RetroArch's safe naming for thumbnails.
     thumb=`printf %s $thumb | tr '&*/:\`<>?\|' '_'`
     thumbpath=$app_support/thumbnails/$system/Named_Boxarts/$thumb.png
     if [[ -f $thumbpath ]]; then
-      thumbfound=1
-      m.icns $thumbpath $icnpath
       p.ok "Boxart/$thumb.png -> $icnpath:t"
+      if [[ ! -f $appicon || $thumbpath -nt $appicon ]]; then
+        m.icns $thumbpath $icnpath
+        update_icon=1
+      fi
       break
     fi
   done
 
   # Use RetroSystem XMB theme content icon as a fallback.
-  if ! (( $thumbfound )); then
+  if [[ ! -f $thumbpath ]]; then
     fallback=$app_support/assets/xmb/retrosystem/png/$system-content.png
     if [[ -f $fallback ]]; then
-      p.warn "retrosystem/$system-content.png -> $icnpath:t"
       m.icns $fallback $icnpath
+      p.warn "retrosystem/$system-content.png -> $icnpath:t"
     else
-      p.warn "$icnpath:t not copied."
+      p.error "$icnpath:t not copied."
     fi
   fi
 
+  p.ok "Finalizing.."
   mkdir -p $shortcut_app
   if cp -R $shortcut_tmp/Contents $shortcut_app; then
-    p.ok "Finalizing.."
     chmod +x $shortcut_app/Contents/MacOS/launcher
     # Work around Tahoe's icon jail.
-    if (( `p.os_version` >= 26 )) && fileicon set -q $shortcut_app $icnpath; then
-      p.ok "Freed from icon jail"
+    if (( `p.os_version` >= 26 && update_icon )); then
+      if fileicon set -q $shortcut_app $appicon; then
+        p.ok "Freed from icon jail"
+      fi
     fi
   else
     p.error "Unable to finalize $shortcut_app:t."

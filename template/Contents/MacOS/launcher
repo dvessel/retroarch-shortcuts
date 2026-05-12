@@ -7,17 +7,10 @@ fi
 
 contents=${ZSH_SCRIPT:h:h}
 
-core=`plutil -extract EmuCorePath raw $contents/info.plist`
-# Cores can be self-contained within `Contents/Frameworks`.
-if [[ -f $contents/Frameworks/$core:t ]]; then
-  core=$contents/Frameworks/$core:t
-fi
-
-rom=`plutil -extract EmuROMPath raw $contents/info.plist`
-# Roms can be self-contained within `Contents/Resources` and checks for containing
-# folder naming for config overrides. For example:
-# - Contents/Resources/NEC SuperGrafx/Dai-Makaimura (Japan).zip
-for r in $rom:t $rom:h:t/$rom:t; [[ -f $contents/Resources/${r%\#*} ]] && {
+cfgs=( $contents/Resources/*.cfg )
+core=$contents/Frameworks/`plutil -extract EmuCore raw $contents/info.plist`
+crom=`plutil -extract EmuROM raw $contents/info.plist`
+for r in $crom:t $crom; [[ -f $contents/Resources/${r%\#*} ]] && {
   rom=$contents/Resources/$r
 }
 
@@ -29,6 +22,4 @@ for r in $rom:t $rom:h:t/$rom:t; [[ -f $contents/Resources/${r%\#*} ]] && {
 a=( `uname -m` ) b=( `lipo -archs $core` ) c=( ${${b:*a}:-$b} )
 largs=( --arch $c )
 
-config=( $contents/Resources/*.cfg )
-
-open $largs -b com.libretro.dist.RetroArch  --args $@ --appendconfig ${(j[|])config} -L $core $rom
+open $largs -b com.libretro.dist.RetroArch --args --appendconfig ${(j[|])cfgs} -L $core $rom $@
