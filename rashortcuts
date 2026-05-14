@@ -327,6 +327,8 @@ for i in $work_indices; do
         p.ok "Freed from icon jail"
       fi
     fi
+    # Update modification date.
+    touch $shortcut_app
   else
     p.error "Unable to finalize $shortcut_app:t."
   fi
