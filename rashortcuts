@@ -12,7 +12,8 @@ zparseopts -D -E -F - \
     return 1
   }
 
-if [[ -n $help ]]; then
+if [[ -n $help ]]
+then
 cat <<- --------
 usage: rashortcuts [OPTION]... [OUTPUT]
 
@@ -60,7 +61,8 @@ p.os_version() {
 
 # Check requirements.
 c.requirements() {
-  for r in $@; if ! type $r &>/dev/null; then
+  for r in $@; if ! type $r &>/dev/null
+  then
     p.error "$r is required."
     __s=1
   fi
@@ -91,9 +93,11 @@ this_dir=$(dirname `realpath $0`)
 # - calling with -t|--template <template/path>
 # - hidden .template folder in the $output directory.
 # - default template provided with the script.
-if [[ -n $template[-1] ]]; then
+if [[ -n $template[-1] ]]
+then
   template=$template[-1]
-elif [[ -d $output/.template ]]; then
+elif [[ -d $output/.template ]]
+then
   template=$output/.template
 else
   template=$this_dir/template
@@ -105,7 +109,8 @@ for f in info.plist MacOS/launcher; [[ -f $template/Contents/$f ]] || {
   return 1
 }
 
-if [[ -n $playlist ]]; then
+if [[ -n $playlist ]]
+then
   playlist=${playlist[-1]}
 else
   for k in _favorites _history; [[ -n ${(P)k} ]] && {
@@ -117,22 +122,26 @@ else
   }
 fi
 
-if [[ ! -n $playlist ]]; then
+if [[ ! -n $playlist ]]
+then
   playlistdir=$(eval printf %s $(
     awk -F= '/playlist_directory/ {print $2}' $app_support/config/retroarch.cfg
   ))
   playlist=$(
-    for lpl in ${playlistdir/#\~/$HOME}/*.lpl; do
+    for lpl in ${playlistdir/#\~/$HOME}/*.lpl
+    do
       print -- "$lpl\t$lpl:t:r"
     done | fzf --delimiter '\t' --with-nth 2 --preview "jq -r '.items[].label' {1}" | cut -f1
   )
-  if [[ ! -n $playlist ]]; then
+  if [[ ! -n $playlist ]]
+  then
     p.warn "Nothing selected."
     return
   fi
 fi
 
-if [[ ! -f $playlist ]]; then
+if [[ ! -f $playlist ]]
+then
   p.error "Playlist does not exist:" \
           "- $playlist"
   return 1
@@ -151,25 +160,29 @@ items=$(
 )
 
 limit=`print -- $items | jq 'length'`
-if [[ -n $process_all ]] || [[ -n $process_existing ]]; then
+if [[ -n $process_all ]] || [[ -n $process_existing ]]
+then
   work_indices=($(
     for (( i=0; i!=$limit; i++ )); print -- $i
   ))
 else
   work_indices=($(
-    for (( i=0; i!=$limit; i++ )); do
+    for (( i=0; i!=$limit; i++ ))
+    do
       print -- "$i\t`print -- $items | jq -r ".[$i].label"`"
     done | fzf --multi --delimiter '\t' --with-nth 2 | cut -f1
   ))
 fi
 
-if [[ -z $work_indices ]]; then
+if [[ -z $work_indices ]]
+then
   p.warn "Nothing to process."
   return
 fi
 
 # hidden templates can be easily forgotten.
-if [[ $template =~ "\/\." ]]; then
+if [[ $template =~ "\/\." ]]
+then
   p.warn "Using template: ${${template:a}/#$HOME/~}"
 fi
 
@@ -177,14 +190,16 @@ default_cname=`jq -r ".default_core_name" $playlist`
 default_cpath=`jq -r ".default_core_path" $playlist`
 
 IFS=$'\n'
-for i in $work_indices; do
+for i in $work_indices
+do
   read -d '' system label gpath cname cpath < <(
     print -- $items | jq -r ".[$i] | .system, .label, .gpath, .cname, .cpath"
   )
   cname=${${cname/DETECT}:-$default_cname}
   cpath=${${cpath/DETECT}:-$default_cpath}
 
-  if [[ -z $cpath ]]; then
+  if [[ -z $cpath ]]
+  then
     p.error "Core could not be determined from the playlist. Do one of the following:" \
             "- Set a default core for the playlist. (recommended)" \
             "- Run the game in RetroArch at least once from the playlist."
@@ -196,7 +211,8 @@ for i in $work_indices; do
   # - replace '/' with '᜵'. [Unicode U+1735]
   shortcut_app=$output/${${${label//: /：}//:/.}//\//᜵}.app
 
-  if [[ -n $process_existing ]] && [[ ! -d $shortcut_app ]]; then
+  if [[ -n $process_existing ]] && [[ ! -d $shortcut_app ]]
+  then
     continue
   fi
 
@@ -204,7 +220,8 @@ for i in $work_indices; do
   p.header "$shortcut_app:t"
 
   shortcut_tmp=`mktemp -dt rashortcut`
-  if ! cp -R $template/Contents $shortcut_tmp; then
+  if ! cp -R $template/Contents $shortcut_tmp
+  then
     p.error "Could not create $shortcut_app:t."
     rm -rf $shortcut_tmp
     continue
@@ -262,7 +279,8 @@ for i in $work_indices; do
   then
     # Do nothing. Core already exists and is not a symlink.
     p.ok "Core: ${cpath:t} - contained"
-  elif [[ -f $cpath ]]; then
+  elif [[ -f $cpath ]]
+  then
     mkdir -p $shortcut_tmp/Contents/Frameworks
     ln -s $cpath $shortcut_tmp/Contents/Frameworks
     p.ok "Core: ${cpath:t} - linked"
@@ -282,7 +300,8 @@ for i in $work_indices; do
   # For each name in $thumbnames:
   # - Chop off each occurance of `(.*)` or `[.*]` from the trailing end.
   # - Add each iteration to the list of naming candidates.
-  for _name in $thumbnames; while [[ $_name =~ "^(.+)(\(|\[)([^([]*)(\)|\]).*$" ]]; do
+  for _name in $thumbnames; while [[ $_name =~ "^(.+)(\(|\[)([^([]*)(\)|\]).*$" ]]
+  do
     _name=$match[1]
     # Discard trailing spaces.
     thumbnames+=${_name%${_name##*[! ]}}
@@ -292,13 +311,16 @@ for i in $work_indices; do
   icnpath=$shortcut_tmp/Contents/Resources/AppIcon.icns
   unset thumbpath
   update_icon=0
-  for thumb in $thumbnames; do
+  for thumb in $thumbnames
+  do
     # Mimic RetroArch's safe naming for thumbnails.
     thumb=`printf %s $thumb | tr '&*/:\`<>?\|' '_'`
     thumbpath=$app_support/thumbnails/$system/Named_Boxarts/$thumb.png
-    if [[ -f $thumbpath ]]; then
+    if [[ -f $thumbpath ]]
+    then
       p.ok "Boxart/$thumb.png -> $icnpath:t"
-      if [[ ! -f $appicon || $thumbpath -nt $appicon ]]; then
+      if [[ ! -f $appicon || $thumbpath -nt $appicon ]]
+      then
         m.icns $thumbpath $icnpath
         update_icon=1
       fi
@@ -307,9 +329,11 @@ for i in $work_indices; do
   done
 
   # Use RetroSystem XMB theme content icon as a fallback.
-  if [[ ! -f $thumbpath ]]; then
+  if [[ ! -f $thumbpath ]]
+  then
     fallback=$app_support/assets/xmb/retrosystem/png/$system-content.png
-    if [[ -f $fallback ]]; then
+    if [[ -f $fallback ]]
+    then
       m.icns $fallback $icnpath
       p.warn "retrosystem/$system-content.png -> $icnpath:t"
     else
@@ -319,11 +343,14 @@ for i in $work_indices; do
 
   p.ok "Finalizing.."
   mkdir -p $shortcut_app
-  if cp -R $shortcut_tmp/Contents $shortcut_app; then
+  if cp -R $shortcut_tmp/Contents $shortcut_app
+  then
     chmod +x $shortcut_app/Contents/MacOS/launcher
     # Work around Tahoe's icon jail.
-    if (( `p.os_version` >= 26 && update_icon )); then
-      if fileicon set -q $shortcut_app $appicon; then
+    if (( `p.os_version` >= 26 && update_icon ))
+    then
+      if fileicon set -q $shortcut_app $appicon
+      then
         p.ok "Freed from icon jail"
       fi
     fi
