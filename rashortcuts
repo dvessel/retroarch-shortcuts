@@ -78,6 +78,19 @@ m.icns() {
   rm -rf $icnset
 }
 
+# Link external dependencies.
+m.link() {
+  if [[ -f $1 ]]
+  then
+    mkdir -p $2
+    ln -s $1 $2
+    p.ok "linked: $1:t"
+  else
+    p.error "missing: $1"
+    return 1
+  fi
+}
+
 # check for all requirements before exiting.
 () {
   c.requirements fzf jq
@@ -217,7 +230,7 @@ do
   fi
 
   # Create the app bundle.
-  p.header "$shortcut_app:t"
+  p.header $shortcut_app:t
 
   shortcut_tmp=`mktemp -dt rashortcut`
   if ! cp -R $template/Contents $shortcut_tmp
@@ -255,40 +268,94 @@ do
 
   # LAUNCHER: Set system, rom and core.
   plutil -insert EmuSystem -string $system $shortcut_tmp/Contents/info.plist
+  Plutil -insert EmuCore -string ${cpath:t} $shortcut_tmp/Contents/info.plist
   plutil -insert EmuROM -string $gcont/$gpathextended:t $shortcut_tmp/Contents/info.plist
-  plutil -insert EmuCore -string ${cpath:t} $shortcut_tmp/Contents/info.plist
+
+  if [[ -f $shortcut_app/Contents/Frameworks/$cpath:t &&
+      ! -L $shortcut_app/Contents/Frameworks/$cpath:t ]]
+  then
+    # Do nothing. Core already exists and isn't symlinked.
+    p.ok "self-contained: $cpath:t"
+  elif ! m.link $cpath $shortcut_tmp/Contents/Frameworks
+  then
+    rm -rf $shortcut_tmp
+    p.error Aborted.
+    continue
+  fi
 
   if [[ -f $shortcut_app/Contents/Resources/$gcont/$gfile &&
       ! -L $shortcut_app/Contents/Resources/$gcont/$gfile ]]
   then
-    # Do nothing. ROM already exists and is not a symlink.
-    p.ok "Game: $gfile - contained"
-  elif [[ -f $gpath ]]; then
-    mkdir -p $shortcut_tmp/Contents/Resources/$gcont
-    ln -s $gpath $shortcut_tmp/Contents/Resources/$gcont
-    p.ok "Game: $gfile - linked"
+    # Do nothing. ROM already exists and isn't symlinked. If the game file
+    # isn't linked, it's expected that dependencies aren't linked either.
+    # Simply give feedback on the status of each file.
+    for file in $shortcut_app/Contents/Resources/$gcont/*
+    do
+      if [[ -L $file && ! -e $file ]]
+      then
+        p.warn "broken link: $file:t"
+      elif [[ -L $file ]]
+      then
+        p.ok "existing link: $file:t"
+      else
+        p.ok "self-contained: $file:t"
+      fi
+    done
   else
-    p.error "$gfile not found. $playlist:t pointing to a non-existing rom:" \
-            "- $gpath"
-    rm -rf $shortcut_tmp
-    continue
-  fi
+    # Soft link game files and all dependencies.
+    # - files that share the rom name mainly for softpatches.
+    # - file pointers within m3u and cue files.
+    # - mame roms dependencies, .e.g., bios, devices and parent roms.
+    #   determined from exported mame data.
 
-  if [[ -f $shortcut_app/Contents/Frameworks/$cpath:h &&
-      ! -L $shortcut_app/Contents/Frameworks/$cpath:h ]]
-  then
-    # Do nothing. Core already exists and is not a symlink.
-    p.ok "Core: ${cpath:t} - contained"
-  elif [[ -f $cpath ]]
-  then
-    mkdir -p $shortcut_tmp/Contents/Frameworks
-    ln -s $cpath $shortcut_tmp/Contents/Frameworks
-    p.ok "Core: ${cpath:t} - linked"
-  else
-    p.error "$cpath:t not found. $playlist:t pointing to a non-existing core:" \
-            "- $cpath"
-    rm -rf $shortcut_tmp
-    continue
+    typeset -aU gamefiles=( $gpath $gpath:r.*(N) )  cuefiles=()
+
+    if [[ $gpath:e == m3u ]]
+    then
+      # ignore Windows CR \r, comments and empty lines.
+      tr -d '\r' < $gpath | grep -vE '^#|^$' | while read -r file
+      do
+        gamefiles+=$gpath:h/$file
+        if [[ $file:e == cue ]]
+        then
+          cuefiles+=$gpath:h/$file
+        fi
+      done
+    elif [[ $gpath:e == cue ]]
+    then
+      cuefiles+=$gpath
+    fi
+
+    for cuefile in $cuefiles
+    do
+      grep -E 'FILE' $cuefile | while read -r line
+      do
+        # Account for double, single and no quotes.
+        if [[ $line =~ "FILE [\"']?(.+[a-z])[\"']? [A-Z]+" ]]
+        then
+          file=${match[1]}
+        else
+          p.error "failed to parse $cuefile."
+          rm -rf $shortcut_tmp
+          p.error Aborted.
+          continue 2
+        fi
+        gamefiles+=$gpath:h/$file
+      done
+    done
+
+    # TODO: handle mame rom dependencies.
+
+
+    for gamefile in $gamefiles
+    do
+      if ! m.link $gamefile $shortcut_tmp/Contents/Resources/$gcont
+      then
+        rm -rf $shortcut_tmp
+        p.error Aborted.
+        continue 2
+      fi
+    done
   fi
 
   typeset -aU thumbnames=(
