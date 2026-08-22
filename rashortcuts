@@ -272,9 +272,9 @@ do
   # Cut off everything after ' (' and ' [' from the file name.
   for s in ${system#*- } ${${fname%% \(*}%% \[*}; bundleid+=.`printf %s ${(L)s} | tr -cd '[:alnum:]-'`
   plutil -insert CFBundleIdentifier -string $bundleid $shortcut_tmp/Contents/info.plist
-  p.ok "BundleID: $bundleid"
+  p.ok "bundleID: $bundleid"
 
-  # LAUNCHER: Set system, rom and core.
+  # LAUNCHER: Set system, core and rom.
   plutil -insert EmuSystem -string $system $shortcut_tmp/Contents/info.plist
   Plutil -insert EmuCore -string ${cpath:t} $shortcut_tmp/Contents/info.plist
   plutil -insert EmuROM -string $gcont/$gpathextended:t $shortcut_tmp/Contents/info.plist
@@ -318,9 +318,9 @@ do
     # - files that share the rom name mainly for softpatches.
     # - file pointers within m3u and cue files.
     # - mame roms dependencies, .e.g., bios, devices and parent roms.
-    #   determined from exported mame data.
+    #   determined from mame xml info.
 
-    typeset -aU gamefiles=( $gpath $gpath:r.*(N) )  cuefiles=()
+    typeset -aU gamefiles=( $gpath $gpath:r.*(N) ) cuefiles=()
 
     if [[ $gpath:e == m3u ]]
     then
@@ -403,7 +403,7 @@ do
     thumbpath=$app_support/thumbnails/$system/Named_Boxarts/$thumb.png
     if [[ -f $thumbpath ]]
     then
-      p.ok "Boxart/$thumb.png -> $icnpath:t"
+      p.ok "boxart/$thumb.png -> $icnpath:t"
       if [[ ! -f $appicon || $thumbpath -nt $appicon ]]
       then
         m.icns $thumbpath $icnpath
