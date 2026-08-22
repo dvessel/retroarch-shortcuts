@@ -55,10 +55,13 @@ return
 fi
 
 # Print with style.
-p.header(){ printf "\n\e[1;30m%s\e[0m\n" $@ }
-p.ok()    { printf   "\e[0;30m%s\e[0m\n" $@ }
-p.warn()  { printf   "\e[0;33m%s\e[0m\n" $@ }
-p.error() { printf   "\e[0;31m%s\e[0m\n" $@ >&2 }
+p.header()  { printf "\n\e[1;30m%s\e[0m\n" $@ }
+p.ok()      { printf "\e[0;30m%s\e[0m\n" $@ }
+p.list()    { printf " \e[0;30m%s\e[0m\n" $@ }
+p.notice()  { printf "\e[0;33m%s\e[0m\n" $@ }
+p.lnotice() { printf " \e[0;33m%s\e[0m\n" $@ }
+p.error()   { printf "\e[0;31m%s\e[0m\n" $@ >&2 }
+p.lerror()  { printf " \e[0;31m%s\e[0m\n" $@ >&2 }
 
 # Print os version as a float.
 p.os_version() {
@@ -92,9 +95,9 @@ m.link() {
   then
     mkdir -p $2
     ln -s $1 $2
-    p.ok "linked: $1:t"
+    p.list "linked: $1:t"
   else
-    p.error "missing: $1"
+    p.lerror "missing: $1"
     return 1
   fi
 }
@@ -156,7 +159,7 @@ then
   )
   if [[ ! -n $playlist ]]
   then
-    p.warn "Nothing selected."
+    p.notice "Nothing selected."
     return
   fi
 fi
@@ -197,14 +200,14 @@ fi
 
 if [[ -z $work_indices ]]
 then
-  p.warn "Nothing to process."
+  p.notice "Nothing to process."
   return
 fi
 
 # hidden templates can be easily forgotten.
 if [[ $template =~ "\/\." ]]
 then
-  p.warn "Using template: ${${template:a}/#$HOME/~}"
+  p.notice "Using template: ${${template:a}/#$HOME/~}"
 fi
 
 default_cname=`jq -r ".default_core_name" $playlist`
@@ -272,7 +275,7 @@ do
   # Cut off everything after ' (' and ' [' from the file name.
   for s in ${system#*- } ${${fname%% \(*}%% \[*}; bundleid+=.`printf %s ${(L)s} | tr -cd '[:alnum:]-'`
   plutil -insert CFBundleIdentifier -string $bundleid $shortcut_tmp/Contents/info.plist
-  p.ok "bundleID: $bundleid"
+  p.list "bundleID: $bundleid"
 
   # LAUNCHER: Set system, core and rom.
   plutil -insert EmuSystem -string $system $shortcut_tmp/Contents/info.plist
@@ -285,7 +288,7 @@ do
         -z $zlink ]]
   then
     # Do nothing. Core already exists and isn't symlinked.
-    p.ok "self-contained: $cpath:t"
+    p.list "self-contained: $cpath:t"
   elif ! m.link $cpath $shortcut_tmp/Contents/Frameworks
   then
     rm -rf $shortcut_tmp
@@ -305,12 +308,12 @@ do
     do
       if [[ -L $file && ! -e $file ]]
       then
-        p.warn "broken link: $file:t"
+        p.lnotice "broken link: $file:t"
       elif [[ -L $file ]]
       then
-        p.ok "existing link: $file:t"
+        p.list "existing link: $file:t"
       else
-        p.ok "self-contained: $file:t"
+        p.list "self-contained: $file:t"
       fi
     done
   else
@@ -403,7 +406,7 @@ do
     thumbpath=$app_support/thumbnails/$system/Named_Boxarts/$thumb.png
     if [[ -f $thumbpath ]]
     then
-      p.ok "boxart/$thumb.png -> $icnpath:t"
+      p.list "boxart/$thumb.png -> $icnpath:t"
       if [[ ! -f $appicon || $thumbpath -nt $appicon ]]
       then
         m.icns $thumbpath $icnpath
@@ -420,7 +423,7 @@ do
     if [[ -f $fallback ]]
     then
       m.icns $fallback $icnpath
-      p.warn "retrosystem/$system-content.png -> $icnpath:t"
+      p.lnotice "retrosystem/$system-content.png -> $icnpath:t"
     else
       p.error "$icnpath:t not copied."
     fi
@@ -439,7 +442,7 @@ do
     # Copying over links can cause permission issues, so delete them first.
     find -s $shortcut_tmp/Contents -type l | while read -r link
     do
-      p.warn "Preparing to copy `du -Lh $link | awk '{print $1}'`: ${link:t}"
+      p.lnotice "Preparing to copy `du -Lh $link | awk '{print $1}'`: ${link:t}"
       rm -f $shortcut_app/${link#$shortcut_tmp/}
     done
     cpf=-RLc
@@ -455,10 +458,10 @@ do
     then
       if fileicon set -q $shortcut_app $appicon
       then
-        p.ok "Freed from icon jail"
+        p.lnotice "Freed from icon jail"
       fi
     fi
-    p.ok "total size: `du -h $shortcut_app | tail -n 1 | awk '{print $1}'`"
+    p.list "total size: `du -h $shortcut_app | tail -n 1 | awk '{print $1}'`"
     # Update modification date.
     touch $shortcut_app
   else
