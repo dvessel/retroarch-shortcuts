@@ -1,6 +1,7 @@
 #!/usr/bin/env zsh
 
 zparseopts -D -E -F - \
+  -self-contain=self_contain \
   -process-all=process_all \
   -process-existing=process_existing \
   -favorites=_favorites \
@@ -29,8 +30,8 @@ Process without fzf game selection.
   --process-existing  process entries for a given playlist that already exists in
                       the output directory.
 
-Last argument should point to the directory where the shortcut.app will be created.
-Defaults to the current working directory.
+Self-containment:
+  --self-contain      copy the core and game files into the shortcut.
 
 Custom templates:
   -t, --template      path/to/template-folder
@@ -39,6 +40,9 @@ An optional template for building shortcuts. It defaults to the folder named
 "template" located in the same directory as this script. If a hidden .template
 folder exists in the output directory, it will be used instead but --template
 will always take presidence.
+
+Last argument should point to the directory where the shortcut.app will be created.
+Defaults to the current working directory.
 
   -h, --help          view help.
 
@@ -410,7 +414,20 @@ do
 
   p.ok "Finalizing.."
   mkdir -p $shortcut_app
-  if cp -R $shortcut_tmp/Contents $shortcut_app
+
+  if (( ${#self_contain} ))
+  then
+    if find $shortcut_tmp -type l -print -quit | grep -q .
+    then
+      p.warn "Copying linked files for self-containment."
+      find $shortcut_app -type l -delete
+    fi
+    cpf=-RLc
+  else
+    cpf=-R
+  fi
+
+  if cp $cpf $shortcut_tmp/Contents $shortcut_app
   then
     chmod +x $shortcut_app/Contents/MacOS/launcher
     # Work around Tahoe's icon jail.
