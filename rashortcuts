@@ -453,6 +453,7 @@ do
         p.ok "Freed from icon jail"
       fi
     fi
+    p.ok "total size: `du -h $shortcut_app | tail -n 1 | awk '{print $1}'`"
     # Update modification date.
     touch $shortcut_app
   else
