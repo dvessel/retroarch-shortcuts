@@ -426,8 +426,13 @@ do
     fi
   fi
 
-  p.ok "Finalizing.."
-  mkdir -p $shortcut_app
+  if [[ -d $shortcut_app ]]
+  then
+    p.ok "Finalizing update.."
+  else
+    p.ok "Finalizing.."
+    mkdir -p $shortcut_app
+  fi
 
   if (( ${#zself_contain} ))
   then
