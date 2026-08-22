@@ -1,19 +1,19 @@
 #!/usr/bin/env zsh
 
 zparseopts -D -E -F - \
-  -self-contain=self_contain \
-  -process-all=process_all \
-  -process-existing=process_existing \
-  -favorites=_favorites \
-  -history=_history \
-  {p,-playlist}:=playlist \
-  {t,-template}:=template \
-  {h,-help}=help || {
+  -self-contain=zself_contain \
+  -process-all=zprocess_all \
+  -process-existing=zprocess_existing \
+  -favorites=zfavorites \
+  -history=zhistory \
+  {p,-playlist}:=zplaylist \
+  {t,-template}:=ztemplate \
+  {h,-help}=zhelp || {
     print "see --help" >&2
     return 1
   }
 
-if [[ -n $help ]]
+if (( ${#zhelp} ))
 then
 cat <<- --------
 usage: rashortcuts [OPTION]... [OUTPUT]
@@ -110,9 +110,9 @@ this_dir=$(dirname `realpath $0`)
 # - calling with -t|--template <template/path>
 # - hidden .template folder in the $output directory.
 # - default template provided with the script.
-if [[ -n $template[-1] ]]
+if [[ -n $ztemplate[-1] ]]
 then
-  template=$template[-1]
+  template=$ztemplate[-1]
 elif [[ -d $output/.template ]]
 then
   template=$output/.template
@@ -126,11 +126,11 @@ for f in info.plist MacOS/launcher; [[ -f $template/Contents/$f ]] || {
   return 1
 }
 
-if [[ -n $playlist ]]
+if [[ -n $zplaylist ]]
 then
-  playlist=${playlist[-1]}
+  playlist=${zplaylist[-1]}
 else
-  for k in _favorites _history; [[ -n ${(P)k} ]] && {
+  for k in zfavorites zhistory; [[ -n ${(P)k} ]] && {
     content_path=$(eval printf %s $(
       awk -F= "/content${k}_path/ { print \$2 }" $app_support/config/retroarch.cfg
     ))
@@ -177,7 +177,7 @@ items=$(
 )
 
 limit=`print -- $items | jq 'length'`
-if [[ -n $process_all ]] || [[ -n $process_existing ]]
+if [[ -n $zprocess_all ]] || [[ -n $zprocess_existing ]]
 then
   work_indices=($(
     for (( i=0; i!=$limit; i++ )); print -- $i
@@ -228,7 +228,7 @@ do
   # - replace '/' with '᜵'. [Unicode U+1735]
   shortcut_app=$output/${${${label//: /：}//:/.}//\//᜵}.app
 
-  if [[ -n $process_existing ]] && [[ ! -d $shortcut_app ]]
+  if [[ -n $zprocess_existing ]] && [[ ! -d $shortcut_app ]]
   then
     continue
   fi
@@ -421,7 +421,7 @@ do
   p.ok "Finalizing.."
   mkdir -p $shortcut_app
 
-  if (( ${#self_contain} ))
+  if (( ${#zself_contain} ))
   then
     if find $shortcut_tmp -type l -print -quit | grep -q .
     then
