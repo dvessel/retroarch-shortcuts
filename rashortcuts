@@ -328,6 +328,12 @@ do
     elif [[ $gpath:e == cue ]]
     then
       cuefiles+=$gpath
+    elif [[ $gpath:e =~ (gdi) ]]
+    then
+      # Formats that are messy in the file system and are typically in
+      # their own directory, so everything is included.
+      # - gdi (Dreamcast)
+      gamefiles+=( $gpath:h/*(N) )
     fi
 
     for cuefile in $cuefiles
