@@ -2,6 +2,7 @@
 
 zparseopts -D -E -F - \
   -self-contain=zself_contain \
+  -link=zlink \
   -process-all=zprocess_all \
   -process-existing=zprocess_existing \
   -favorites=zfavorites \
@@ -30,7 +31,10 @@ Process without fzf game selection.
   --process-existing  process entries for a given playlist that already exists in
                       the output directory.
 
-Self-containment:
+Containment mode:
+  --link              core and game files are symlinked. (default)
+                      for use when the shortcut is already self-contained to
+                      force it into symbolic links.
   --self-contain      copy the core and game files into the shortcut.
 
 Custom templates:
@@ -276,7 +280,9 @@ do
   plutil -insert EmuROM -string $gcont/$gpathextended:t $shortcut_tmp/Contents/info.plist
 
   if [[ -f $shortcut_app/Contents/Frameworks/$cpath:t &&
-      ! -L $shortcut_app/Contents/Frameworks/$cpath:t ]]
+      ! -L $shortcut_app/Contents/Frameworks/$cpath:t &&
+        -z $zself_contain &&
+        -z $zlink ]]
   then
     # Do nothing. Core already exists and isn't symlinked.
     p.ok "self-contained: $cpath:t"
@@ -288,7 +294,9 @@ do
   fi
 
   if [[ -f $shortcut_app/Contents/Resources/$gcont/$gfile &&
-      ! -L $shortcut_app/Contents/Resources/$gcont/$gfile ]]
+      ! -L $shortcut_app/Contents/Resources/$gcont/$gfile &&
+        -z $zself_contain &&
+        -z $zlink ]]
   then
     # Do nothing. ROM already exists and isn't symlinked. If the game file
     # isn't linked, it's expected that dependencies aren't linked either.
@@ -423,11 +431,12 @@ do
 
   if (( ${#zself_contain} ))
   then
-    if find $shortcut_tmp -type l -print -quit | grep -q .
-    then
-      p.warn "Copying linked files for self-containment."
-      find $shortcut_app -type l -delete
-    fi
+    # Copying over links can cause permission issues, so delete them first.
+    find -s $shortcut_tmp/Contents -type l | while read -r link
+    do
+      p.warn "Preparing to copy `du -Lh $link | awk '{print $1}'`: ${link:t}"
+      rm -f $shortcut_app/${link#$shortcut_tmp/}
+    done
     cpf=-RLc
   else
     cpf=-R
