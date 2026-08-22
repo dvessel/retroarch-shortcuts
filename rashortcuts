@@ -317,7 +317,7 @@ do
     if [[ $gpath:e == m3u ]]
     then
       # ignore Windows CR \r, comments and empty lines.
-      tr -d '\r' < $gpath | grep -vE '^#|^$' | while read -r file
+      tr -d '\r' < $gpath | grep -vE '^#|^[[:space:]]*$' | while read -r file
       do
         gamefiles+=$gpath:h/$file
         if [[ $file:e == cue ]]
