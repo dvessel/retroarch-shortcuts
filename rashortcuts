@@ -372,12 +372,10 @@ do
             (( ${merge[(I)$disk]} )) || depchain+=( $name:$disk )
           done
         fi
-        # collect from .device_ref but only if it was dumped. this only checks
-        # for .rom so 'nodump' will still be listed. if it was really dumped,
-        # it would have a crc hash but this query is complicated enough.
+        # collect from .device_ref but only if it was dumped.
         depchain=($(
           mameinfo --get-all $rom -r --arg name $name '
-            [ .machine[] | select(has("rom")) | .name ] as $dumped |
+            [ .machine[] | select((.rom // []) | any(has("crc"))) | .name ] as $dumped |
               .machine[] | select(.name == $name) | .device_ref[]? |
                 select(.name as $n | $dumped | any(. == $n)) | .name'
         ) $depchain)
@@ -399,6 +397,8 @@ do
         elif [[ -f $sourcefolder/${dep//://} ]]
         then
           gamefiles+=$sourcefolder/$dep
+        else
+          p.lnote "not found: $dep"
         fi
       done
       # end mame dependency collection.
