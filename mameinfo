@@ -1,0 +1,132 @@
+#!/usr/bin/env zsh
+#
+# outputs mame info for a given rom as json.
+#
+# Usage: mameinfo [-d|--init-dir] <./romdir>
+#        mameinfo [-x|--exists] <./romdir/rom.zip>
+#        mameinfo [jq options] [-g|--get,-l|--get-all] <./romdir/rom.zip>
+# see oq --help
+#
+# requires standalone mame and oq.
+# oq is a wrapper for jq and shares the same options.
+#
+for r in mame oq; type $r &>/dev/null || missing+=($r)
+if (( ${#missing} ))
+then
+  echo "${(j/, /)missing} required." >&2
+  return 1
+fi
+
+zparseopts -D -E - {d,-init-dir}:=zinit_dir \
+  {x,-exists,g,-get,l,-get-all}:=zrom_file || return 1
+
+if ! (( ${#zinit_dir} + ${#zrom_file} ))
+then
+	cat <<-EOF >&2
+	Usage: mameinfo [-d|--init-dir] <romdir>
+	       mameinfo [-x|--exists] <romdir/rom.zip>
+	       mameinfo [jq options] [-g|--get,-l|--get-all] <romdir/rom.zip>
+	see oq --help
+	EOF
+  return 1
+fi
+
+if (( ${#zinit_dir} ))
+then
+  init_dir=${zinit_dir[-1]}
+  if [[ ! -d $init_dir ]]
+  then
+    print "init path does not exist." >&2
+    return 1
+  fi
+  # Remove decimals and truncate. MAME version 0.250.0.1 results in 0250.
+  version=$( mame -version | awk -F'[ .]' '{print $1$2}' )
+  if [[ -z $version ]]
+  then
+    version=unknown
+  fi
+  mkdir -p $init_dir/.rominfo/$version
+  ln -sF $version $init_dir/.rominfo/info
+  return
+fi
+
+# absolute path required to prevent an endless loop.
+rom_file=${zrom_file[-1]:a}
+init_dir=${rom_file:h}
+
+if [[ ! -d $init_dir ]]
+then
+  print "missing directory: $init_dir" >&2
+  return 1
+fi
+
+# locate parent directory containing .rominfo.
+while [[ ! -s $init_dir/.rominfo/info ]]
+do
+  init_dir=$init_dir:h
+  if [[ $init_dir == / ]]
+  then
+    print "rom path must be initialized." >&2
+    return 1
+  fi
+done
+
+flag=${zrom_file[1]}
+name=${rom_file:t:r}
+info_file=$init_dir/.rominfo/info/$name.json
+
+if [[ ! -s $info_file ]]
+then
+  append_dir=~/Library/Application\ Support/RetroArch/database/${init_dir:t}-append
+  if ! mamexml=$( mame -listxml $name 2>/dev/null ) &&
+  [[ -f $append_dir/$name.xml ]]
+  then
+    mamexml=$( < $append_dir/$name.xml )
+  fi
+
+  if [[ -n $mamexml ]]
+  then
+    echo $mamexml | oq -i xml -o json '
+    def arrayofobjects: if type == "object" then [.] else . end;
+    def scrub: walk(if type == "object" then with_entries(
+      select(.key != "#text" and .value != null) | .key |= ltrimstr("@")
+    ) else . end );
+    { version: .mame."@build" | match("^[0-9.]+").string,
+      machine:[ .mame.machine | arrayofobjects | .[] |
+        { name: ."@name",
+          description: .description,
+          manufacturer: .manufacturer,
+          year: .year,
+          runnable: ."@runnable",
+          isbios: ."@isbios",
+          isdevice: ."@isdevice",
+          ismechanical: ."@ismechanical",
+          romof: ."@romof",
+          cloneof: ."@cloneof",
+          sampleof: ."@sampleof",
+          sourcefile: ."@sourcefile",
+          driver: .driver,
+          feature: .feature | arrayofobjects,
+          display: .display | arrayofobjects,
+          sound: .sound,
+          input: .input,
+          disk: .disk | arrayofobjects,
+          rom: .rom | arrayofobjects,
+          sample: .sample | arrayofobjects,
+          biosset: .biosset | arrayofobjects,
+          device: .device | arrayofobjects,
+          device_ref: .device_ref | arrayofobjects } | scrub ]}' > $info_file
+  fi
+fi
+
+case $flag in
+  -x|--exists)
+    return $( test -f $info_file )
+    ;;
+  -g|--get)
+    oq --arg name $info_file:t:r '.machine[]|select(.name == $name)' $info_file | oq ${@:-.}
+    ;;
+  -l|--get-all)
+    oq ${@:-.} $info_file
+    ;;
+esac

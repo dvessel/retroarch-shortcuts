@@ -1,84 +1,66 @@
 #!/usr/bin/env zsh
 
 zparseopts -D -E -F - \
-  -self-contain=zself_contain \
-  -link=zlink \
-  -process-all=zprocess_all \
-  -process-existing=zprocess_existing \
-  -favorites=zfavorites \
-  -history=zhistory \
+  {-favorites,-history}=zbuiltin_playlist \
   {p,-playlist}:=zplaylist \
   {t,-template}:=ztemplate \
+  {-process-all,-process-existing}=zprocess_mode \
+  {-link,-self-contain}=zcontain_mode \
   {h,-help}=zhelp || {
-    print "see --help" >&2
+    echo "see --help" >&2
     return 1
   }
 
 if (( ${#zhelp} ))
 then
-cat <<- --------
-usage: rashortcuts [OPTION]... [OUTPUT]
+	cat <<-EOF
+	usage: rashortcuts [OPTION]... [OUTPUT]
 
-Playlists:
-  --favorites         favorites playlist
-  --history           history playlist
-  -p, --playlist      path/to/playlist.lpl
+	Playlists:
+	  --favorites         favorites playlist
+	  --history           history playlist
+	  -p, --playlist      path/to/playlist.lpl
 
-If a playlist is not provided, fzf will list them automatically.
+	If a playlist is not provided, fzf will list them automatically.
 
-Process without fzf game selection.
-  --process-all       process all entries for a given playlist
-  --process-existing  process entries for a given playlist that already exists in
-                      the output directory.
+	Process without fzf game selection.
+	  --process-all       Process all entries for a given playlist
+	  --process-existing  Process entries for a given playlist that already exists in
+	                      the output directory. Useful for updating existing shortcuts.
 
-Containment mode:
-  --link              core and game files are symlinked. (default)
-                      for use when the shortcut is already self-contained to
-                      force it into symbolic links.
-  --self-contain      copy the core and game files into the shortcut.
+	Containment mode:
+	  --link              Core and game files are symlinked. (default)
+	                      For use when the shortcut is already self-contained to
+	                      force it into symbolic links.
+	  --self-contain      Copy the core and game files into the shortcut.
 
-Custom templates:
-  -t, --template      path/to/template-folder
+	Custom templates:
+	  -t, --template      path/to/template-folder
 
-An optional template for building shortcuts. It defaults to the folder named
-"template" located in the same directory as this script. If a hidden .template
-folder exists in the output directory, it will be used instead but --template
-will always take presidence.
+	An optional template for building shortcuts. It defaults to the folder named
+	"template" located in the same directory as this script. If a hidden .template
+	folder exists in the output directory, it will be used instead but --template
+	will always take presidence.
 
-Last argument should point to the directory where the shortcut.app will be created.
-Defaults to the current working directory.
+	Last argument should point to the directory where the shortcut.app will be created.
+	Defaults to the current working directory.
 
-  -h, --help          view help.
-
---------
-return
+	  -h, --help          View help.
+	EOF
+  return
 fi
+
+this_dir=$( dirname $( realpath $0 ) )
+PATH=$this_dir:$PATH
 
 # Print with style.
 p.header()  { printf "\n\e[1;30m%s\e[0m\n" $@ }
 p.ok()      { printf "\e[0;30m%s\e[0m\n" $@ }
 p.list()    { printf " \e[0;30m%s\e[0m\n" $@ }
-p.notice()  { printf "\e[0;33m%s\e[0m\n" $@ }
-p.lnotice() { printf " \e[0;33m%s\e[0m\n" $@ }
+p.note()    { printf "\e[0;33m%s\e[0m\n" $@ }
+p.lnote()   { printf " \e[0;33m%s\e[0m\n" $@ }
 p.error()   { printf "\e[0;31m%s\e[0m\n" $@ >&2 }
 p.lerror()  { printf " \e[0;31m%s\e[0m\n" $@ >&2 }
-
-# Print os version as a float.
-p.os_version() {
-  local os_version=`sw_vers -productVersion`
-  float os_version=${os_version%%.*}.${${os_version#*.}//./}
-  print -- $os_version
-}
-
-# Check requirements.
-c.requirements() {
-  for r in $@; if ! type $r &>/dev/null
-  then
-    p.error "$r is required."
-    __s=1
-  fi
-  return ${__s:-0}
-}
 
 # Make .icns files.
 m.icns() {
@@ -93,7 +75,7 @@ m.icns() {
 m.link() {
   if [[ -f $1 ]]
   then
-    mkdir -p $2
+    mkdir -p $2:h
     ln -s $1 $2
     p.list "linked: $1:t"
   else
@@ -102,18 +84,33 @@ m.link() {
   fi
 }
 
-# check for all requirements before exiting.
-() {
-  c.requirements fzf jq
-  (( `p.os_version` >= 26 )) && c.requirements fileicon
-} || return 1
+# oq is a wrapper for jq and share the same options but oq can convert from xml
+# which is required for mame roms. jq can be used when mame isn't a concern.
+jq=oq
+if type jq &>/dev/null
+then
+  jq=jq
+elif ! type oq &>/dev/null
+then
+  p.error "jq or oq is required."
+  return 1
+fi
+# fzf is required for the interactive menu.
+! type fzf &>/dev/null && {
+  p.error "fzf is required."
+  return 1
+}
+# macOS 26 >= for custom icons.
+! type fileicon &>/dev/null && [ ${$(sw_vers -productVersion)%%.*} -ge 26 ] && {
+  p.error "fileicon is required"
+  return 1
+}
 
 output=${1:-.}
 
 app_support=~/Library/Application\ Support/RetroArch
-this_dir=$(dirname `realpath $0`)
 
-# order of prescidence:
+# order of precedence:
 # - calling with -t|--template <template/path>
 # - hidden .template folder in the $output directory.
 # - default template provided with the script.
@@ -126,40 +123,39 @@ then
 else
   template=$this_dir/template
 fi
-
+# hidden templates can be easily forgotten. give notice.
+if [[ $template =~ "\/\." ]]
+then
+  p.note "Using template: ${${template:a}/#$HOME/~}"
+fi
 for f in info.plist MacOS/launcher; [[ -f $template/Contents/$f ]] || {
   p.error "Check template: $f:t file not found." \
           "- $template/Contents/$f"
   return 1
 }
 
-if [[ -n $zplaylist ]]
+if (( ${#zplaylist} ))
 then
   playlist=${zplaylist[-1]}
-else
-  for k in zfavorites zhistory; [[ -n ${(P)k} ]] && {
-    content_path=$(eval printf %s $(
-      awk -F= "/content${k}_path/ { print \$2 }" $app_support/config/retroarch.cfg
-    ))
-    playlist=${content_path/#\~/$HOME}
-    break
-  }
-fi
-
-if [[ ! -n $playlist ]]
+elif (( ${#zbuiltin_playlist} ))
 then
-  playlistdir=$(eval printf %s $(
+  playlist=${$(eval printf %s $(
+    awk -F= "/content_${zbuiltin_playlist[-1]#--}_path/ { print \$2 }" \
+      $app_support/config/retroarch.cfg
+  ))/#\~/$HOME}
+else
+  playlistdir=${$(eval printf %s $(
     awk -F= '/playlist_directory/ {print $2}' $app_support/config/retroarch.cfg
-  ))
+  ))}
   playlist=$(
     for lpl in ${playlistdir/#\~/$HOME}/*.lpl
     do
-      print -- "$lpl\t$lpl:t:r"
-    done | fzf --delimiter '\t' --with-nth 2 --preview "jq -r '.items[].label' {1}" | cut -f1
+      printf "%s\t%s\n" $lpl $lpl:t:r
+    done | fzf -d '\t' --with-nth 2 --preview "$jq -r '.items[].label' {1}" | cut -f1
   )
   if [[ ! -n $playlist ]]
   then
-    p.notice "Nothing selected."
+    p.note "Nothing selected."
     return
   fi
 fi
@@ -174,57 +170,49 @@ fi
 # json list of cleaned up items.
 # Ensure .label and .db_name are present.
 items=$(
-  jq '.items[] | select(( .label | length > 0 ) and ( .db_name | length > 0 )) | {
+  $jq '.items[] | select((.label|length > 0) and (.db_name|length > 0)) | {
     system:.db_name|sub(".lpl"; ""),
     label: .label,
     gpath: .path,
     cname: .core_name,
     cpath: .core_path
-  }' $playlist | jq -n '[inputs]'
+  }' $playlist | $jq -n '[inputs]'
 )
 
-limit=`print -- $items | jq 'length'`
-if [[ -n $zprocess_all ]] || [[ -n $zprocess_existing ]]
+if (( ${#zprocess_mode} ))
 then
-  work_indices=($(
-    for (( i=0; i!=$limit; i++ )); print -- $i
-  ))
+  indices=($( seq 0 $(( $(printf %s $items | $jq 'length')-1 )) ))
 else
-  work_indices=($(
-    for (( i=0; i!=$limit; i++ ))
-    do
-      print -- "$i\t`print -- $items | jq -r ".[$i].label"`"
-    done | fzf --multi --delimiter '\t' --with-nth 2 | cut -f1
+  indices=($(
+    printf %s $items | $jq -r 'to_entries[] | "\(.key)\t\(.value.label)"' |
+      fzf --multi --delimiter '\t' --with-nth 2 | cut -f1
   ))
 fi
 
-if [[ -z $work_indices ]]
+if ! (( ${#indices} ))
 then
-  p.notice "Nothing to process."
+  p.note "Nothing to process."
   return
 fi
 
-# hidden templates can be easily forgotten.
-if [[ $template =~ "\/\." ]]
-then
-  p.notice "Using template: ${${template:a}/#$HOME/~}"
-fi
+scontent_path=`$jq -r '.scan_content_dir' $playlist`
+default_cname=`$jq -r '.default_core_name' $playlist`
+default_cpath=`$jq -r '.default_core_path' $playlist`
 
-default_cname=`jq -r ".default_core_name" $playlist`
-default_cpath=`jq -r ".default_core_path" $playlist`
-
-IFS=$'\n'
-for i in $work_indices
+for row in ${(f)"$(
+  printf %s $items | $jq -r --argjson idx "[${(j:,:)indices}]" \
+    '$idx[] as $i | .[$i] | [.system,.label,.gpath,.cname,.cpath] | @tsv'
+)"}
 do
-  read -d '' system label gpath cname cpath < <(
-    print -- $items | jq -r ".[$i] | .system, .label, .gpath, .cname, .cpath"
-  )
+  IFS=$'\t' read -r system label gpath cname cpath <<< $row
+
   cname=${${cname/DETECT}:-$default_cname}
   cpath=${${cpath/DETECT}:-$default_cpath}
 
   if [[ -z $cpath ]]
   then
-    p.error "Core could not be determined from the playlist. Do one of the following:" \
+    p.error "Skipping: $label" \
+            "Core could not be determined from the playlist. Do one of the following:" \
             "- Set a default core for the playlist. (recommended)" \
             "- Run the game in RetroArch at least once from the playlist."
     continue
@@ -235,7 +223,7 @@ do
   # - replace '/' with '᜵'. [Unicode U+1735]
   shortcut_app=$output/${${${label//: /：}//:/.}//\//᜵}.app
 
-  if [[ -n $zprocess_existing ]] && [[ ! -d $shortcut_app ]]
+  if [[ ${zprocess_mode%process-existing} == -- && ! -d $shortcut_app ]]
   then
     continue
   fi
@@ -244,36 +232,45 @@ do
   p.header $shortcut_app:t
 
   shortcut_tmp=`mktemp -dt rashortcut`
-  if ! cp -R $template/Contents $shortcut_tmp
+  if ! cp -Rc $template/Contents $shortcut_tmp
   then
     p.error "Could not create $shortcut_app:t."
     rm -rf $shortcut_tmp
     continue
   fi
 
+  # system:system name taken from the db_name without the lpl extension.
+  # cname: core name.
+  # cpath: core path.
+  # label: name from playlist label field usually taken from a database.
   # gpathextended:full game path including possible archive pointer.
   # gpath: game path without the archived pointer.
   # gcont: game container or parent directory name.
   # gfile: game file name with extension.
   # fname: name of the game file without extension.
   # aname: name of archive pointer. Empty if not present.
-  # label: name from playlist label field usually taken from a database.
 
-  unset match
-  [[ $gpath:t =~ "(.*\.[[:alnum:]]{2,3})\#(.*)\.[[:alnum:]]{2,4}$" ]]
   gpathextended=$gpath
-  gpath=$gpath:h/${match[1]:-$gpath:t}
+  if [[ $gpath =~ "(.*\.[[:alnum:]]{2,3})\#(.*)\.[[:alnum:]]{2,4}$" ]]
+  then
+    gpath=${match[1]}
+    aname=${match[2]}
+  else
+    aname=
+  fi
   gcont=$gpath:h:t
   gfile=$gpath:t
   fname=$gpath:t:r
-  aname=${match[2]}
 
   # INFO.PLIST: Set bundle id.
   bundleid=com.libretro
   # Limit application bundle id to alphanumerics and '-', all lower case.
   # Cut off everything before the first '- ' in system.
   # Cut off everything after ' (' and ' [' from the file name.
-  for s in ${system#*- } ${${fname%% \(*}%% \[*}; bundleid+=.`printf %s ${(L)s} | tr -cd '[:alnum:]-'`
+  for s in ${system#*- } ${${fname%% \(*}%% \[*}
+  do
+    bundleid+=.$( printf %s ${(L)s} | tr -cd '[:alnum:]-' )
+  done
   plutil -insert CFBundleIdentifier -string $bundleid $shortcut_tmp/Contents/info.plist
   p.list "bundleID: $bundleid"
 
@@ -284,12 +281,11 @@ do
 
   if [[ -f $shortcut_app/Contents/Frameworks/$cpath:t &&
       ! -L $shortcut_app/Contents/Frameworks/$cpath:t &&
-        -z $zself_contain &&
-        -z $zlink ]]
+        -z $zcontain_mode ]]
   then
     # Do nothing. Core already exists and isn't symlinked.
     p.list "self-contained: $cpath:t"
-  elif ! m.link $cpath $shortcut_tmp/Contents/Frameworks
+  elif ! m.link $cpath $shortcut_tmp/Contents/Frameworks/$cpath:t
   then
     rm -rf $shortcut_tmp
     p.error Aborted.
@@ -298,8 +294,7 @@ do
 
   if [[ -f $shortcut_app/Contents/Resources/$gcont/$gfile &&
       ! -L $shortcut_app/Contents/Resources/$gcont/$gfile &&
-        -z $zself_contain &&
-        -z $zlink ]]
+        -z $zcontain_mode ]]
   then
     # Do nothing. ROM already exists and isn't symlinked. If the game file
     # isn't linked, it's expected that dependencies aren't linked either.
@@ -308,7 +303,7 @@ do
     do
       if [[ -L $file && ! -e $file ]]
       then
-        p.lnotice "broken link: $file:t"
+        p.lnote "broken link: $file:t"
       elif [[ -L $file ]]
       then
         p.list "existing link: $file:t"
@@ -318,65 +313,155 @@ do
     done
   else
     # Soft link game files and all dependencies.
-    # - files that share the rom name mainly for softpatches.
-    # - file pointers within m3u and cue files.
     # - mame roms dependencies, .e.g., bios, devices and parent roms.
     #   determined from mame xml info.
+    # - for consoles, files that share the rom name mainly for softpatches.
+    # - file pointers within m3u and cue files.
 
-    typeset -aU gamefiles=( $gpath $gpath:r.*(N) ) cuefiles=()
-
-    if [[ $gpath:e == m3u ]]
+    systems=(
+      'Atomiswave'
+      'FBNeo - Arcade Games'
+      'MAME'
+      'MAME 2000'
+      'MAME 2003'
+      'MAME 2003-Plus'
+      'MAME 2010'
+      'MAME 2015'
+      'MAME 2016'
+      'Sega - Naomi'
+      'Sega - Naomi 2'
+      'SNK - Neo Geo'
+    )
+    if [[ -n ${systems[(r)$system]} ]]
     then
-      # ignore Windows CR \r, comments and empty lines.
-      tr -d '\r' < $gpath | grep -vE '^#|^[[:space:]]*$' | while read -r file
-      do
-        gamefiles+=$gpath:h/$file
-        if [[ $file:e == cue ]]
+      # start mame dependency collection.
+      typeset -aU gamefiles=() depchain=()
+      name=$gpath:t:r
+      extension=$gpath:e
+      sourcefolder=$gpath:h
+
+      if ! mameinfo --exists $gpath
+      then
+        if [[ $scontent_path =~ "(.+)/\.sorted/-.+" ]]
         then
-          cuefiles+=$gpath:h/$file
+          mameinfo --init-dir ${match[1]} || break
+        else
+          mameinfo --init-dir $scontent_path || break
+        fi
+      fi
+
+      while [[ $name != null ]]
+      do
+        # bios -> parent -> child .. for each dependency get devices and disks.
+        depchain=( $name $depchain )
+        rom=$sourcefolder/$name.$extension
+
+        # prevent infinite loop.
+        mameinfo --exists $rom || break
+
+        disks=($( mameinfo -r '.disk[]?.name' -g $rom ))
+        if (( ${#disks} ))
+        then
+          merge=($( mameinfo -r '.disk[]?.merge' -g $rom ))
+          for disk in $disks
+          do
+            # filter out .merge names. they are added with the parent.
+            # disks must be in a subdirectory named after the rom name.
+            # using ':' so path modifiers do not break this connection.
+            (( ${merge[(I)$disk]} )) || depchain+=( $name:$disk )
+          done
+        fi
+        # collect from .device_ref but only if it was dumped. this only checks
+        # for .rom so 'nodump' will still be listed. if it was really dumped,
+        # it would have a crc hash but this query is complicated enough.
+        depchain=($(
+          mameinfo --get-all $rom -r --arg name $name '
+            [ .machine[] | select(has("rom")) | .name ] as $dumped |
+              .machine[] | select(.name == $name) | .device_ref[]? |
+                select(.name as $n | $dumped | any(. == $n)) | .name'
+        ) $depchain)
+
+        name=$( mameinfo -r .romof -g $rom )
+      done
+
+      for dep in $depchain
+      do
+        if [[ $dep == *:* ]]
+        then
+          dep+=.chd
+        else
+          dep+=.$extension
+        fi
+        if [[ $gpath =~ "(.+)/\.sorted/-.+" && -f ${match[1]}/${dep//://} ]]
+        then
+          gamefiles+=${match[1]}/$dep
+        elif [[ -f $sourcefolder/${dep//://} ]]
+        then
+          gamefiles+=$sourcefolder/$dep
         fi
       done
-    elif [[ $gpath:e == cue ]]
-    then
-      cuefiles+=$gpath
-    elif [[ $gpath:e =~ (gdi) ]]
-    then
-      # Formats that are messy in the file system and are typically in
-      # their own directory, so everything is included.
-      # - gdi (Dreamcast)
-      gamefiles+=( $gpath:h/*(N) )
+      # end mame dependency collection.
+    else
+      # start console dependency collection.
+      typeset -aU gamefiles=( $gpath $gpath:r.*(N) ) cuefiles=()
+
+      if [[ $gpath:e == m3u ]]
+      then
+        # reading m3u file.
+        while read -r file
+        do
+          gamefiles+=$gpath:h/$file
+          if [[ $file:e == cue ]]
+          then
+            cuefiles+=$gpath:h/$file
+          fi
+        # ignore Windows CR \r, comments and empty lines.
+        done < <( tr -d '\r' < $gpath | grep -vE '^#|^[[:space:]]*$' )
+
+      elif [[ $gpath:e == cue ]]
+      then
+        cuefiles+=$gpath
+      elif [[ $gpath:e =~ (gdi) ]]
+      then
+        # Formats that are messy in the file system and are typically in
+        # their own directory, so everything is included.
+        # - gdi (Dreamcast)
+        gamefiles+=( $gpath:h/*(N) )
+      fi
+
+      for cuefile in $cuefiles
+      do
+        # reading cue file.
+        while read -r line
+        do
+          # Account for double, single and no quotes.
+          if [[ $line =~ "FILE [\"']?(.+[a-z])[\"']? [A-Z]+" ]]
+          then
+            file=${match[1]}
+          else
+            rm -rf $shortcut_tmp
+            p.error "failed to parse $cuefile."
+            p.error Aborted.
+            break 2
+          fi
+          gamefiles+=$gpath:h/$file
+        done < <( grep -E 'FILE' $cuefile )
+      done
+      # end console dependency collection
     fi
 
-    for cuefile in $cuefiles
-    do
-      grep -E 'FILE' $cuefile | while read -r line
-      do
-        # Account for double, single and no quotes.
-        if [[ $line =~ "FILE [\"']?(.+[a-z])[\"']? [A-Z]+" ]]
-        then
-          file=${match[1]}
-        else
-          p.error "failed to parse $cuefile."
-          rm -rf $shortcut_tmp
-          p.error Aborted.
-          continue 2
-        fi
-        gamefiles+=$gpath:h/$file
-      done
-    done
-
-    # TODO: handle mame rom dependencies.
-
-
+    # link all found files for mame and consoles.
     for gamefile in $gamefiles
     do
-      if ! m.link $gamefile $shortcut_tmp/Contents/Resources/$gcont
+      target=$shortcut_tmp/Contents/Resources/$gcont/$gamefile:t
+      if ! m.link ${gamefile//://} ${target//://}
       then
         rm -rf $shortcut_tmp
         p.error Aborted.
-        continue 2
+        break
       fi
     done
+    # end content linking.
   fi
 
   typeset -aU thumbnames=(
@@ -396,20 +481,20 @@ do
   done
 
   appicon=$shortcut_app/Contents/Resources/AppIcon.icns
-  icnpath=$shortcut_tmp/Contents/Resources/AppIcon.icns
+  tmpicon=$shortcut_tmp/Contents/Resources/AppIcon.icns
   unset thumbpath
   update_icon=0
   for thumb in $thumbnames
   do
     # Mimic RetroArch's safe naming for thumbnails.
-    thumb=`printf %s $thumb | tr '&*/:\`<>?\|' '_'`
+    thumb=$( printf %s $thumb | tr '&*/:\`<>?\|' '_' )
     thumbpath=$app_support/thumbnails/$system/Named_Boxarts/$thumb.png
     if [[ -f $thumbpath ]]
     then
-      p.list "boxart/$thumb.png -> $icnpath:t"
+      p.list "boxart/$thumb.png -> $tmpicon:t"
       if [[ ! -f $appicon || $thumbpath -nt $appicon ]]
       then
-        m.icns $thumbpath $icnpath
+        m.icns $thumbpath $tmpicon
         update_icon=1
       fi
       break
@@ -422,10 +507,10 @@ do
     fallback=$app_support/assets/xmb/retrosystem/png/$system-content.png
     if [[ -f $fallback ]]
     then
-      m.icns $fallback $icnpath
-      p.lnotice "retrosystem/$system-content.png -> $icnpath:t"
+      m.icns $fallback $tmpicon
+      p.lnote "retrosystem/$system-content.png -> $tmpicon:t"
     else
-      p.error "$icnpath:t not copied."
+      p.error "$tmpicon:t not copied."
     fi
   fi
 
@@ -437,14 +522,14 @@ do
     mkdir -p $shortcut_app
   fi
 
-  if (( ${#zself_contain} ))
+  if [[ ${zcontain_mode%self-contain} == -- ]]
   then
     # Copying over links can cause permission issues, so delete them first.
-    find -s $shortcut_tmp/Contents -type l | while read -r link
+    while read -r link
     do
-      p.lnotice "Preparing to copy `du -Lh $link | awk '{print $1}'`: ${link:t}"
+      p.lnote "Preparing to copy $( du -Lh $link | cut -f1 ): ${link:t}"
       rm -f $shortcut_app/${link#$shortcut_tmp/}
-    done
+    done< <( find $shortcut_tmp/Contents -type l )
     cpf=-RLc
   else
     cpf=-R
@@ -454,14 +539,14 @@ do
   then
     chmod +x $shortcut_app/Contents/MacOS/launcher
     # Work around Tahoe's icon jail.
-    if (( `p.os_version` >= 26 && update_icon ))
+    if (( ${$(sw_vers -productVersion)%%.*} >= 26 && update_icon ))
     then
       if fileicon set -q $shortcut_app $appicon
       then
-        p.lnotice "Freed from icon jail"
+        p.lnote "Freed from icon jail"
       fi
     fi
-    p.list "total size: `du -h $shortcut_app | tail -n 1 | awk '{print $1}'`"
+    p.list "total size: $( du -sh $shortcut_app | cut -f1 )"
     # Update modification date.
     touch $shortcut_app
   else
