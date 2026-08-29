@@ -5,7 +5,7 @@ zparseopts -D -E -F - \
   {p,-playlist}:=zplaylist \
   {t,-template}:=ztemplate \
   {-process-all,-process-existing}=zprocess_mode \
-  {-link,-self-contain}=zcontain_mode \
+  {-link,-embed-all,-embed-rom}=zcontain_mode \
   {h,-help}=zhelp || {
     echo "see --help" >&2
     return 1
@@ -32,7 +32,8 @@ then
 	  --link              Core and game files are symlinked. (default)
 	                      For use when the shortcut is already self-contained to
 	                      force it into symbolic links.
-	  --self-contain      Copy the core and game files into the shortcut.
+	  --embed-rom         Copy all rom files into the shortcut.
+	  --embed-all         Copy the core and rom files into the shortcut.
 
 	Custom templates:
 	  -t, --template      path/to/template-folder
@@ -523,29 +524,37 @@ do
     mkdir -p $shortcut_app
   fi
 
-  if [[ ${zcontain_mode%self-contain} == -- ]]
+  clone_dir=()
+  if [[ ${zcontain_mode#--} == embed-all ]]
   then
-    # Copying over links can cause permission issues, so delete them first.
-    while read -r link
+    clone_dir=( $shortcut_tmp/Contents/{FrameWorks,Resources/$gcont} )
+  elif [[ ${zcontain_mode#--} == embed-rom ]]
+  then
+    clone_dir=( $shortcut_tmp/Contents/Resources/$gcont )
+  fi
+  if (( ${#clone_dir} ))
+  then
+    find $clone_dir -type l | while read -r link
     do
-      p.lnote "Preparing to copy $( du -Lh $link | cut -f1 ): ${link:t}"
-      rm -f $shortcut_app/${link#$shortcut_tmp/}
-    done< <( find $shortcut_tmp/Contents -type l )
-    cpf=-RLc
-  else
-    cpf=-R
+      # prepare source and destination. copying into a symbolic link
+      # causes a permission error that can not be avoided.
+      applink=$shortcut_app/${link#$shortcut_tmp/}
+      if [[ -f $applink ]]
+      then
+        rm $applink
+      fi
+      cp -Lc $link $link.tmp && mv $link.tmp $link
+      p.lnote "copied $( du -h $link | cut -f1 ): ${link:t}"
+    done
   fi
 
-  if cp $cpf $shortcut_tmp/Contents $shortcut_app
+  if cp -Rc $shortcut_tmp/Contents $shortcut_app
   then
     chmod +x $shortcut_app/Contents/MacOS/launcher
     # Work around Tahoe's icon jail.
-    if (( ${$(sw_vers -productVersion)%%.*} >= 26 && update_icon ))
+    if (( ${$(sw_vers -productVersion)%%.*} >= 26 ))
     then
-      if fileicon set -q $shortcut_app $appicon
-      then
-        p.lnote "Freed from icon jail"
-      fi
+      (( update_icon )) && fileicon set -q $shortcut_app $appicon &
     fi
     p.list "total size: $( du -sh $shortcut_app | cut -f1 )"
     # Update modification date.

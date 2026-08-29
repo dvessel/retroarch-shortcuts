@@ -37,7 +37,8 @@ Containment mode:
   --link              Core and game files are symlinked. (default)
                       For use when the shortcut is already self-contained to
                       force it into symbolic links.
-  --self-contain      Copy the core and game files into the shortcut.
+  --embed-rom         Copy all rom files into the shortcut.
+  --embed-all         Copy the core and rom files into the shortcut.
 
 Custom templates:
   -t, --template      path/to/template-folder
