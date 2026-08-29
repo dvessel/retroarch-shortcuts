@@ -240,7 +240,7 @@ do
   fi
 
   # system:system name taken from the db_name without the lpl extension.
-  # cname: core name.
+  # cname: core name formatted as 'EMULATED SYSTEM (CORENAME)'
   # cpath: core path.
   # label: name from playlist label field usually taken from a database.
   # gpathextended:full game path including possible archive pointer.
@@ -266,10 +266,11 @@ do
   bundleid=com.libretro
   # Limit application bundle id to alphanumerics and '-', all lower case.
   # Cut off everything before the first '- ' in system.
+  # Extract everything within '()' from core name.
   # Cut off everything after ' (' and ' [' from the file name.
-  for s in ${system#*- } ${${fname%% \(*}%% \[*}
+  for d in ${system#*- } ${${cname#*\(}%)} ${${fname%% \(*}%% \[*}
   do
-    bundleid+=.$( printf %s ${(L)s} | tr -cd '[:alnum:]-' )
+    bundleid+=.$( printf %s ${(L)d} | tr -cd '[:alnum:]-' )
   done
   plutil -insert CFBundleIdentifier -string $bundleid $shortcut_tmp/Contents/info.plist
   p.list "bundleID: $bundleid"
