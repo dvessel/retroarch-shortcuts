@@ -2,9 +2,9 @@
 #
 # outputs mame info for a given rom as json.
 #
-# Usage: mameinfo [-d|--init-dir] <./romdir>
-#        mameinfo [-x|--exists] <./romdir/rom.zip>
-#        mameinfo [jq options] [-g|--get,-l|--get-all] <./romdir/rom.zip>
+# Usage: mameinfo [-d|--init-dir] <romdir>
+#        mameinfo [-x|--exists] <romdir/rom.zip>
+#        mameinfo [jq options] [-g|--get,-l|--get-all] <romdir/rom.zip>
 # see oq --help
 #
 # requires standalone mame and oq.
