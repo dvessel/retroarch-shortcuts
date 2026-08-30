@@ -346,9 +346,9 @@ do
       then
         if [[ $scontent_path =~ "(.+)/\.sorted/-.+" ]]
         then
-          mameinfo --init-dir ${match[1]} || break
+          mameinfo --init-path ${match[1]} || break
         else
-          mameinfo --init-dir $scontent_path || break
+          mameinfo --init-path $scontent_path || break
         fi
       fi
 
