@@ -74,10 +74,12 @@ m.icns() {
 
 # Link external dependencies.
 m.link() {
-  if [[ -f $1 ]]
+  # ':' replaced with '/'
+  local source=${1//://} target=$shortcut_tmp/Contents/${2//://}
+  if [[ -f $source ]]
   then
-    mkdir -p $2:h
-    ln -s $1 $2
+    test -d $target:h || mkdir -p $target:h
+    ln -s $source $target
     p.list "linked: $1:t"
   else
     p.lerror "missing: $1"
@@ -287,7 +289,7 @@ do
   then
     # Do nothing. Core already exists and isn't symlinked.
     p.list "self-contained: $cpath:t"
-  elif ! m.link $cpath $shortcut_tmp/Contents/Frameworks/$cpath:t
+  elif ! m.link $cpath Frameworks/$cpath:t
   then
     rm -rf $shortcut_tmp
     p.error Aborted.
@@ -455,8 +457,7 @@ do
     # link all found files for mame and consoles.
     for gamefile in $gamefiles
     do
-      target=$shortcut_tmp/Contents/Resources/$gcont/$gamefile:t
-      if ! m.link ${gamefile//://} ${target//://}
+      if ! m.link $gamefile Resources/$gcont/$gamefile:t
       then
         rm -rf $shortcut_tmp
         p.error Aborted.
