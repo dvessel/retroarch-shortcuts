@@ -1,25 +1,21 @@
 #!/usr/bin/env zsh
 
-# Abort if RetroArch is already running.
-if pgrep -x RetroArch &> /dev/null; then
-  exit 1
+self=${ZSH_SCRIPT:h:h}
+
+core=$self/Frameworks/$( plutil -extract EmuCore raw $self/info.plist )
+if [[ -f $core ]]
+then
+  # a: hardware arch. arm64 or x86_64
+  # b: core arch. arm64 and/or x86_64
+  # c: hardware aligned core arch with fallsback. arm64 or x86_64
+  # `open` called with arch flag supported by the core.
+  # Required for x86 cores on arm hardware.
+  a=($( uname -m )) b=($( lipo -archs $core )) c=( ${${b:*a}:-$b} )
+  arch=( --arch $c )
+else
+  core=${${core:t}%_libretro.dylib}
 fi
+rom=$self/Resources/$( plutil -extract EmuROM raw $self/info.plist )
 
-contents=${ZSH_SCRIPT:h:h}
-
-cfgs=( $contents/Resources/*.cfg )
-core=$contents/Frameworks/`plutil -extract EmuCore raw $contents/info.plist`
-crom=`plutil -extract EmuROM raw $contents/info.plist`
-for r in $crom:t $crom; [[ -f $contents/Resources/${r%\#*} ]] && {
-  rom=$contents/Resources/$r
-}
-
-# a: hardware arch. arm64 or x86_64
-# b: core arch. arm64 and/or x86_64
-# c: hardware aligned core arch with fallsback. arm64 or x86_64
-# `open` called with arch flag supported by the core.
-# Required for x86 cores on arm hardware.
-a=( `uname -m` ) b=( `lipo -archs $core` ) c=( ${${b:*a}:-$b} )
-largs=( --arch $c )
-
-open $largs -b com.libretro.dist.RetroArch --args --appendconfig ${(j[|])cfgs} -L $core $rom $@
+cfgs=( $self/Resources/*.cfg )
+open $arch -nb com.libretro.dist.RetroArch --args --appendconfig ${(j[|])cfgs} -L $core $rom $@
