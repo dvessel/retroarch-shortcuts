@@ -383,6 +383,7 @@ do
                 select(.name as $n | $dumped | any(. == $n)) | .name'
         ) $depchain)
 
+        m.link "$( mameinfo --info-path $rom )" Resources/$gcont/$name.json
         name=$( mameinfo -r .romof -g $rom )
       done
 
