@@ -170,29 +170,27 @@ then
   return 1
 fi
 
-# json list of cleaned up items.
-# Ensure .label and .db_name are present.
-items=$(
-  $jq '.items[] | select((.label|length > 0) and (.db_name|length > 0)) | {
-    system:.db_name|sub(".lpl"; ""),
-    label: .label,
-    gpath: .path,
-    cname: .core_name,
-    cpath: .core_path
-  }' $playlist | $jq -n '[inputs]'
+# tab seperated list from playlist. ensure .label and .db_name are present.
+list=$(
+  $jq -r '.items[] | select((.label|length > 0) and (.db_name|length > 0)) |
+    [ .label,
+      .path,
+      .core_name,
+      .core_path,
+      .db_name | sub(".lpl"; "") ] | @tsv' $playlist
 )
 
 if (( ${#zprocess_mode} ))
 then
-  indices=($( seq 0 $(( $(printf %s $items | $jq 'length')-1 )) ))
+  worklist=$list
 else
-  indices=($(
-    printf %s $items | $jq -r 'to_entries[] | "\(.key)\t\(.value.label)"' |
-      fzf --multi --delimiter '\t' --with-nth 2 | cut -f1
-  ))
+  worklist=$(
+    printf %s $list |
+      fzf --multi --delimiter $'\t' --with-nth 1 --header "$playlist:t:r"
+  )
 fi
 
-if ! (( ${#indices} ))
+if [[ -z $worklist ]]
 then
   p.note "Nothing to process."
   return
@@ -202,12 +200,9 @@ scontent_path=`$jq -r '.scan_content_dir' $playlist`
 default_cname=`$jq -r '.default_core_name' $playlist`
 default_cpath=`$jq -r '.default_core_path' $playlist`
 
-for row in ${(f)"$(
-  printf %s $items | $jq -r --argjson idx "[${(j:,:)indices}]" \
-    '$idx[] as $i | .[$i] | [.system,.label,.gpath,.cname,.cpath] | @tsv'
-)"}
+for row in ${(f)worklist}
 do
-  IFS=$'\t' read -r system label gpath cname cpath <<< $row
+  IFS=$'\t' read -r label gpath cname cpath system <<< $row
 
   cname=${${cname/DETECT}:-$default_cname}
   cpath=${${cpath/DETECT}:-$default_cpath}
