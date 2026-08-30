@@ -64,7 +64,7 @@ Process all favorites. Last argument *(optional)* is the output path.
 rashortcuts --favorites --process-all /Applications/RetroArch/Favorites
 ```
 
-Or call it with a path and pick a playlist and games when prompted. Type to search and use `tab` or `ctrl+i` to select multiple items and press `return`. Use `ctrl+j/k` or the arrow keys to navigate. `esc` to cancel.
+Or call it with a path and pick a playlist and games when prompted. Type to search and use `tab` or `ctrl+i` to select multiple items and press `return`. Use `ctrl+j/k` or the arrow keys to navigate. `esc` to cancel. *[fzf search syntax](https://junegunn.github.io/fzf/search-syntax/)*
 
 ```sh
 rashortcuts ~/RetroArch\ Shortcuts
