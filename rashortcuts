@@ -184,10 +184,7 @@ if (( ${#zprocess_mode} ))
 then
   worklist=$list
 else
-  worklist=$(
-    printf %s $list |
-      fzf --multi --delimiter $'\t' --with-nth 1 --header "$playlist:t:r"
-  )
+  worklist=$( fzf --multi --delimiter $'\t' --with-nth 1 --header "$playlist:t:r" <<< $list )
 fi
 
 if [[ -z $worklist ]]
@@ -196,9 +193,9 @@ then
   return
 fi
 
-scontent_path=`$jq -r '.scan_content_dir' $playlist`
-default_cname=`$jq -r '.default_core_name' $playlist`
-default_cpath=`$jq -r '.default_core_path' $playlist`
+scontent_path=$( $jq -r '.scan_content_dir' $playlist )
+default_cname=$( $jq -r '.default_core_name' $playlist )
+default_cpath=$( $jq -r '.default_core_path' $playlist )
 
 for row in ${(f)worklist}
 do
@@ -221,7 +218,7 @@ do
   # - replace '/' with '᜵'. [Unicode U+1735]
   shortcut_app=$output/${${${label//: /：}//:/.}//\//᜵}.app
 
-  if [[ ${zprocess_mode%process-existing} == -- && ! -d $shortcut_app ]]
+  if [[ ${zprocess_mode#--} == process-existing && ! -d $shortcut_app ]]
   then
     continue
   fi
@@ -229,7 +226,7 @@ do
   # Create the app bundle.
   p.header $shortcut_app:t
 
-  shortcut_tmp=`mktemp -dt rashortcut`
+  shortcut_tmp=$( mktemp -dt rashortcut )
   if ! cp -Rc $template/Contents $shortcut_tmp
   then
     p.error "Could not create $shortcut_app:t."
@@ -549,9 +546,9 @@ do
   then
     chmod +x $shortcut_app/Contents/MacOS/launcher
     # Work around Tahoe's icon jail.
-    if (( ${$(sw_vers -productVersion)%%.*} >= 26 ))
+    if (( update_icon && ${$(sw_vers -productVersion)%%.*} >= 26 ))
     then
-      (( update_icon )) && fileicon set -q $shortcut_app $appicon &
+      fileicon set -q $shortcut_app $appicon &
     fi
     p.list "total size: $( du -sh $shortcut_app | cut -f1 )"
     # Update modification date.
