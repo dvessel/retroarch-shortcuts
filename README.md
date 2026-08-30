@@ -2,6 +2,8 @@
 
 Creates MacOS app bundles to launch roms directly through the Finder.
 
+https://github.com/user-attachments/assets/e08b53a2-f47c-4439-8c9e-84f5b1c1de6e
+
 ## Installation
 
 Requires: [fzf](https://github.com/junegunn/fzf), [oq](https://blacksmoke16.github.io/oq/) and [fileicon](https://github.com/mklement0/fileicon) *if you are running macOS 26 (Tahoe or later)*.
