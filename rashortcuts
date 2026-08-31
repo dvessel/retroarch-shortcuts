@@ -88,7 +88,8 @@ m.link() {
 }
 
 # oq is a wrapper for jq and share the same options but oq can convert from xml
-# which is required for mame roms. jq can be used when mame isn't a concern.
+# which is required for mame roms. @see mameinfo. jq can be used when mame isn't
+# a concern and it is faster when dealing solely with json.
 jq=oq
 if type jq &>/dev/null
 then
