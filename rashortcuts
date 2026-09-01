@@ -377,7 +377,14 @@ do
         ) $depchain)
 
         m.link "$( mameinfo --info-path $rom )" Resources/$gcont/$name.json
-        name=$( mameinfo -r .romof -g $rom )
+
+        # broken dependency chain for naomigd roms. add naomi bios manually.
+        if [[ $name == naomigd ]]
+        then
+          name=naomi
+        else
+          name=$( mameinfo -r .romof -g $rom )
+        fi
       done
 
       for dep in $depchain
