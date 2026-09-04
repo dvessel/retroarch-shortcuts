@@ -31,7 +31,7 @@ Playlists:
 If a playlist is not provided, fzf will list them automatically.
 
 Process without fzf game selection.
-  --process-all       Process all entries for a given playlist
+  --process-all       Process all entries for a given playlist.
   --process-existing  Process entries for a given playlist that already exists in
                       the output directory. Useful for updating existing shortcuts.
 
