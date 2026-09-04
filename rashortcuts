@@ -6,6 +6,7 @@ zparseopts -D -E -F - \
   {t,-template}:=ztemplate \
   {-process-all,-process-existing}=zprocess_mode \
   {-link,-embed-all,-embed-rom}=zcontain_mode \
+  -mame-tags=zset_tags \
   {h,-help}=zhelp || {
     echo "see --help" >&2
     return 1
@@ -27,6 +28,9 @@ then
 	  --process-all       Process all entries for a given playlist
 	  --process-existing  Process entries for a given playlist that already exists in
 	                      the output directory. Useful for updating existing shortcuts.
+
+	Tag shortcuts based on MAME's internal sourcefile string.
+	  --mame-tags         Tags based on internal info, e.g., capcom, cps3.
 
 	Containment mode:
 	  --link              Core and game files are symlinked. (default)
@@ -107,6 +111,11 @@ fi
 # macOS 26 >= for custom icons.
 ! type fileicon &>/dev/null && [ ${$(sw_vers -productVersion)%%.*} -ge 26 ] && {
   p.error "fileicon is required"
+  return 1
+}
+# required only when tagging.
+! type tag &>/dev/null && [[ ${zset_tags#--*} == mame-tags ]] && {
+  p.error "tag is required"
   return 1
 }
 
@@ -235,6 +244,7 @@ do
     continue
   fi
 
+  tags=()
   # system:system name taken from the db_name without the lpl extension.
   # cname: core name formatted as 'EMULATED SYSTEM (CORENAME)'
   # cpath: core path.
@@ -406,6 +416,13 @@ do
         fi
       done
       # end mame dependency collection.
+
+      if [[ ${zset_tags#--*} == mame-tags ]]
+      then
+        # tags based on sourcefile string.
+        source_strings=${${$( mameinfo -r '.sourcefile' -g $gpath ):r}/_/\/}
+        tags+=( ${(s:/:)source_strings} )
+      fi
     else
       # start console dependency collection.
       typeset -aU gamefiles=( $gpath $gpath:r.*(N) ) cuefiles=()
@@ -557,6 +574,11 @@ do
     if (( update_icon && ${$(sw_vers -productVersion)%%.*} >= 26 ))
     then
       fileicon set -q $shortcut_app $appicon &
+    fi
+    if (( ${#tags} ))
+    then
+      tag -a ${(j:,:)tags} $shortcut_app
+      p.list "tagged: ${(j:,:)tags}"
     fi
     p.list "total size: $( du -sh $shortcut_app | cut -f1 )"
     # Update modification date.

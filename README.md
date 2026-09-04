@@ -35,6 +35,9 @@ Process without fzf game selection.
   --process-existing  Process entries for a given playlist that already exists in
                       the output directory. Useful for updating existing shortcuts.
 
+Tag shortcuts based on MAME's internal sourcefile string.
+  --mame-tags         Tags based on internal info, e.g., capcom, cps3.
+
 Containment mode:
   --link              Core and game files are symlinked. (default)
                       For use when the shortcut is already self-contained to
