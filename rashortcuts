@@ -153,11 +153,16 @@ then
   playlist=$( raconfig --get content_${zbuiltin_playlist[-1]#--}_path )
 else
   playlistdir=$( raconfig --get playlist_directory )
+  lplnames=( $playlistdir/*.lpl(N:t:r) )
   playlist=$(
     for lpl in $playlistdir/*.lpl
     do
       printf "%s\t%s\n" $lpl $lpl:t:r
-    done | fzf -d '\t' --with-nth 2 --preview "$jq -r '.items[].label' {1}" | cut -f1
+    done |
+    # automatically query when the output directory name matches playlist name.
+    fzf -d '\t' --with-nth 2 \
+    --query "${lplnames[(r)$output:t]}" --select-1 \
+    --preview "$jq -r '.items[].label' {1}" | cut -f1
   )
   if [[ ! -n $playlist ]]
   then
