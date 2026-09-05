@@ -121,8 +121,6 @@ fi
 
 output=${1:-.}
 
-app_support=~/Library/Application\ Support/RetroArch
-
 # order of precedence:
 # - calling with -t|--template <template/path>
 # - hidden .template folder in the $output directory.
@@ -152,16 +150,11 @@ then
   playlist=${zplaylist[-1]}
 elif (( ${#zbuiltin_playlist} ))
 then
-  playlist=${$(eval printf %s $(
-    awk -F= "/content_${zbuiltin_playlist[-1]#--}_path/ { print \$2 }" \
-      $app_support/config/retroarch.cfg
-  ))/#\~/$HOME}
+  playlist=$( raconfig --get content_${zbuiltin_playlist[-1]#--}_path )
 else
-  playlistdir=${$(eval printf %s $(
-    awk -F= '/playlist_directory/ {print $2}' $app_support/config/retroarch.cfg
-  ))}
+  playlistdir=$( raconfig --get playlist_directory )
   playlist=$(
-    for lpl in ${playlistdir/#\~/$HOME}/*.lpl
+    for lpl in $playlistdir/*.lpl
     do
       printf "%s\t%s\n" $lpl $lpl:t:r
     done | fzf -d '\t' --with-nth 2 --preview "$jq -r '.items[].label' {1}" | cut -f1
@@ -509,7 +502,7 @@ do
   do
     # Mimic RetroArch's safe naming for thumbnails.
     thumb=$( printf %s $thumb | tr '&*/:\`<>?\|' '_' )
-    thumbpath=$app_support/thumbnails/$system/Named_Boxarts/$thumb.png
+    thumbpath=$( raconfig --get thumbnails_directory )/$system/Named_Boxarts/$thumb.png
     if [[ -f $thumbpath ]]
     then
       p.list "boxart/$thumb.png -> $tmpicon:t"
@@ -525,7 +518,7 @@ do
   # Use RetroSystem XMB theme content icon as a fallback.
   if [[ ! -f $thumbpath ]]
   then
-    fallback=$app_support/assets/xmb/retrosystem/png/$system-content.png
+    fallback=$( raconfig --get assets_directory )/xmb/retrosystem/png/$system-content.png
     if [[ -f $fallback ]]
     then
       m.icns $fallback $tmpicon
