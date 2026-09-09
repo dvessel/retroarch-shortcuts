@@ -91,6 +91,15 @@ m.link() {
   fi
 }
 
+for key in config_save_minimal playlist_compression playlist_use_old_format
+do
+  if [[ $( raconfig --get $key ) == true ]]
+  then
+    p.error "Incompatible with '$key'."
+    return 1
+  fi
+done
+
 # oq is a wrapper for jq and share the same options but oq can convert from xml
 # which is required for mame roms. @see mameinfo. jq can be used when mame isn't
 # a concern and it is faster when dealing solely with json.
