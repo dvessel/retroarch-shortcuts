@@ -535,8 +535,12 @@ do
     fallback=$( raconfig --get assets_directory )/xmb/retrosystem/png/$system-content.png
     if [[ -f $fallback ]]
     then
-      m.icns $fallback $tmpicon
       p.lnote "retrosystem/$system-content.png -> $tmpicon:t"
+      if [[ ! -f $appicon || $fallback -nt $appicon ]]
+      then
+        m.icns $fallback $tmpicon
+        update_icon=1
+      fi
     else
       p.error "$tmpicon:t not copied."
     fi
