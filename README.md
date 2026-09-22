@@ -50,8 +50,8 @@ Custom templates:
 
 An optional template for building shortcuts. It defaults to the folder named
 "template" located in the same directory as this script. If a hidden .template
-folder exists in the output directory, it will be used instead but --template
-will always take presidence.
+folder exists in the output directory or its parents, it will be used instead
+but --template will always take presidence.
 
 Last argument should point to the directory where the shortcut.app will be created.
 Defaults to the current working directory.
