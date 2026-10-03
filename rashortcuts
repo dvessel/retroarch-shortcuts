@@ -6,7 +6,7 @@ zparseopts -D -E -F - \
   {t,-template}:=ztemplate \
   {-process-all,-process-existing}=zprocess_mode \
   {-link,-embed-all,-embed-rom}=zcontain_mode \
-  -mame-tags=zset_tags \
+  {-mame-tags,-system-tags}=zset_tags \
   {h,-help}=zhelp || {
     echo "see --help" >&2
     exit 1
@@ -276,7 +276,12 @@ do
     continue
   fi
 
-  tags=()
+  typeset -aU tags=()
+  if [[ ${zset_tags[(r)--system-tags]} ]]
+  then
+    tags+=( ${(s/ - /)system} )
+  fi
+
   # system:system name taken from the db_name without the lpl extension.
   # cname: core name formatted as 'EMULATED SYSTEM (CORENAME)'
   # cpath: core path.
@@ -424,9 +429,11 @@ do
 
       if [[ ${zset_tags[(r)--mame-tags]} ]]
       then
-        # tags based on sourcefile string.
-        source_strings=${${$( mameinfo -r '.sourcefile' $gpath ):r}/_/\/}
-        tags+=( ${(s:/:)source_strings} )
+        # Tag based on manufacturer string and tail end of sourcefile string,
+        tags+=(
+          "$( mameinfo -r '.manufacturer' $gpath )"
+          ${(Us:_:)$( mameinfo -r '.sourcefile' $gpath ):t:r}
+        )
       fi
 
     else
