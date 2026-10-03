@@ -58,17 +58,32 @@ fi
 thisdir=${0:A:h}
 PATH=$thisdir:$PATH
 
+# Systems with ROMS structured around MAME.
+arcade_systems=(
+  'Atomiswave'
+  'FBNeo - Arcade Games'
+  'MAME'
+  'MAME 2000'
+  'MAME 2003'
+  'MAME 2003-Plus'
+  'MAME 2010'
+  'MAME 2015'
+  'MAME 2016'
+  'Sega - Naomi'
+  'Sega - Naomi 2'
+)
+
 # Print with style.
-p.header()  { printf "\n\e[1;30m%s\e[0m\n" $@ }
-p.ok()      { printf "\e[0;30m%s\e[0m\n" $@ }
-p.list()    { printf " \e[0;30m%s\e[0m\n" $@ }
-p.note()    { printf "\e[0;33m%s\e[0m\n" $@ }
-p.lnote()   { printf " \e[0;33m%s\e[0m\n" $@ }
-p.error()   { printf "\e[0;31m%s\e[0m\n" $@ >&2 }
-p.lerror()  { printf " \e[0;31m%s\e[0m\n" $@ >&2 }
+function p.header { printf "\n\e[1;30m%s\e[0m\n" $@ }
+function p.ok     { printf "\e[0;30m%s\e[0m\n" $@ }
+function p.list   { printf " \e[0;30m%s\e[0m\n" $@ }
+function p.note   { printf "\e[0;33m%s\e[0m\n" $@ }
+function p.lnote  { printf " \e[0;33m%s\e[0m\n" $@ }
+function p.error  { printf "\e[0;31m%s\e[0m\n" $@ >&2 }
+function p.lerror { printf " \e[0;31m%s\e[0m\n" $@ >&2 }
 
 # Make .icns files.
-m.icns() {
+function m.icns {
   local icnset=${TMPDIR}`uuidgen`.iconset
   mkdir $icnset
   sips -j $thisdir/makeicnset.js $1 -o $icnset
@@ -76,21 +91,21 @@ m.icns() {
   rm -rf $icnset
 }
 
-# Link external dependencies.
-m.link() {
+# Make symbolic link to external dependency.
+function m.link {
   zparseopts -D -E - {s,-silent}=zsilent {f,-on-fail}=fsilent || return 1
-  local source=$1
-  local target=$shortcut_tmp/Contents/$2
-  local target_dir
+  local source=$1 target=$shortcut_tmp/Contents/$2 target_dir
   if [[ -f $source ]]
   then
-    if [[ $target =~ \\.[^.]{2,5}$ ]]
+    # If target is a file, link to it. Otherwise, link to a directory.
+    # This is determined by a file extension between 1-5 characters.
+    if [[ $target =~ \\.[^.]{1,5}$ ]]
     then target_dir=$target:h
     else target_dir=$target
     fi
     [[ -d $target_dir ]] || mkdir -p $target_dir
     ln -sf $source $target
-    # Hides message when --silent. It will show on -sf, silent on fail.
+    # Hides message when --silent. It will show on -sf, silent on fail only.
     if ! (( #zsilent )) || (( #fsilent ))
     then p.list "linked: $source:t"
     fi
@@ -103,13 +118,10 @@ m.link() {
   fi
 }
 
-for skey in config_save_minimal \
-            playlist_compression \
-            playlist_use_old_format
+for skey in config_save_minimal playlist_compression playlist_use_old_format
 do
   if [[ $( raconfig --get $skey ) == true ]]
-  then
-    p.error "Incompatible with '$skey'."
+  then p.error "Incompatible with '$skey'."
     exit 1
   fi
 done
@@ -130,12 +142,13 @@ then p.error "fzf is required."
   exit 1
 fi
 # macOS 26 >= for custom icons.
-if ! (( $+commands[fileicon] )) && [[ ${$(sw_vers -productVersion)%%.*} -ge 26 ]]
+iconjail=$(( ${$(sw_vers -productVersion)%%.*} >= 26 ))
+if ! (( $+commands[fileicon] )) && (( iconjail ))
 then p.error "fileicon is required"
   exit 1
 fi
 # required only when tagging.
-if ! (( $+commands[tag] )) && [[ $zset_tags == --mame-tags ]]
+if ! (( $+commands[tag] )) && (( #zset_tags ))
 then p.error "tag is required"
   exit 1
 fi
@@ -334,24 +347,10 @@ do
     done
   else
     # Soft link game files and all dependencies.
-    # - mame roms dependencies, .e.g., bios, devices and parent roms.
+    # - mame roms dependencies, .e.g., bios, devices, parent roms or disks.
     # - For consoles, files that share the rom name mainly for softpatches.
     # - File pointers within m3u and cue files.
 
-    arcade_systems=(
-      'Atomiswave'
-      'FBNeo - Arcade Games'
-      'MAME'
-      'MAME 2000'
-      'MAME 2003'
-      'MAME 2003-Plus'
-      'MAME 2010'
-      'MAME 2015'
-      'MAME 2016'
-      'Sega - Naomi'
-      'Sega - Naomi 2'
-      'SNK - Neo Geo'
-    )
     # Start file and dependency linking.
     if [[ -n ${arcade_systems[(r)$system]} ]]
     then
@@ -388,7 +387,7 @@ do
           # Message shows on success, silent on failure.
           m.link -sf $sourcedir/$name.$ext $targetdir
         fi
-        # Never show message.
+        # Link json but never show message.
         m.link -s "$( mameinfo --info-path $rom )" $targetdir
 
         while read -r device
@@ -423,7 +422,7 @@ do
         fi
       done
 
-      if [[ $zset_tags == --mame-tags ]]
+      if [[ ${zset_tags[(r)--mame-tags]} ]]
       then
         # tags based on sourcefile string.
         source_strings=${${$( mameinfo -r '.sourcefile' $gpath ):r}/_/\/}
@@ -580,7 +579,7 @@ do
   then
     chmod +x $shortcut_app/Contents/MacOS/launcher
     # Work around Tahoe's icon jail.
-    if (( update_icon && ${$(sw_vers -productVersion)%%.*} >= 26 ))
+    if (( update_icon && iconjail ))
     then fileicon set -q $shortcut_app $appicon &
     fi
     if (( ${#tags} ))
