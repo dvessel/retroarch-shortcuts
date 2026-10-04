@@ -197,11 +197,12 @@ then playlist=$( raconfig --get content_${zbuiltin_playlist[-1]#--}_path )
 else
   playlistdir=$( raconfig --get playlist_directory )
   lplnames=( $playlistdir/*.lpl(N:t:r) )
+  lplquery=${lplnames[(r)$output:t]}
   playlist=$(
     for lpl in $playlistdir/*.lpl
     do printf "%s\t%s\n" $lpl $lpl:t:r
     # automatically query when the output directory name matches playlist name.
-    done | fzf -d '\t' --with-nth 2 --query "${lplnames[(r)$output:t]}" --select-1 --preview "$jq -r '.items[].label' {1}" | cut -f1
+    done | fzf -d '\t' --with-nth 2 -q "$lplquery" -1 --preview "$jq -r '.items[].label' {1}" | cut -f1
   )
   if [[ ! -n $playlist ]]
   then p.note "Nothing selected."
@@ -228,7 +229,7 @@ list=$(
 
 if (( ${#zprocess_mode} ))
 then worklist=$list
-else worklist=$( fzf --multi --delimiter $'\t' --with-nth 1 --header "$playlist:t:r" <<< $list )
+else worklist=$( fzf -m -d $'\t' --with-nth 1 --header "${${playlist:t:r}#content_}" <<< $list )
 fi
 
 if [[ -z $worklist ]]
@@ -299,7 +300,7 @@ do
     gpath=${match[1]}
     aname=${match[2]}
   else
-    aname=
+    aname=''
   fi
   gcont=$gpath:h:t
   gfile=$gpath:t
