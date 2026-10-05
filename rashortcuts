@@ -514,14 +514,13 @@ do
   # - Add each iteration to the list of naming candidates.
   for _name in $thumbnames; while [[ $_name =~ "^(.+)(\(|\[)([^([]*)(\)|\]).*$" ]]
   do
-    _name=$match[1]
-    # Discard trailing spaces.
-    thumbnames+=${_name%${_name##*[! ]}}
+    _name=${match[1]% }
+    thumbnames+=$_name
   done
 
   appicon=$shortcut_app/Contents/Resources/AppIcon.icns
   tmpicon=$shortcut_tmp/Contents/Resources/AppIcon.icns
-  unset thumbpath
+  thumbpath=''
   update_icon=0
   for thumb in $thumbnames
   do
