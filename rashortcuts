@@ -237,6 +237,9 @@ then p.note "Nothing to process."
   exit
 fi
 
+thumbnails_directory=$( raconfig --get thumbnails_directory )
+assets_directory=$( raconfig --get assets_directory )
+
 scontent_path=$( $jq -r '.scan_content_dir' $playlist )
 default_cname=$( $jq -r '.default_core_name' $playlist )
 default_cpath=$( $jq -r '.default_core_path' $playlist )
@@ -524,7 +527,7 @@ do
   do
     # Mimic RetroArch's safe naming for thumbnails.
     thumb=$( printf %s $thumb | tr '&*/:\`<>?\|' '_' )
-    thumbpath=$( raconfig --get thumbnails_directory )/$system/Named_Boxarts/$thumb.png
+    thumbpath=$thumbnails_directory/$system/Named_Boxarts/$thumb.png
     if [[ -f $thumbpath ]]
     then
       p.list "boxart/$thumb.png -> $tmpicon:t"
@@ -540,7 +543,7 @@ do
   # Use RetroSystem XMB theme content icon as a fallback.
   if [[ ! -f $thumbpath ]]
   then
-    fallback=$( raconfig --get assets_directory )/xmb/retrosystem/png/$system-content.png
+    fallback=$assets_directory/xmb/retrosystem/png/$system-content.png
     if [[ -f $fallback ]]
     then
       p.lnote "retrosystem/$system-content.png -> $tmpicon:t"
