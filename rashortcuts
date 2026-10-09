@@ -29,8 +29,9 @@ then
 	  --process-existing  Process entries for a given playlist that already exists in
 	                      the output directory. Useful for updating existing shortcuts.
 
-	Tag shortcuts based on MAME's internal sourcefile string.
-	  --mame-tags         Tags based on internal info, e.g., capcom, cps3.
+	Tag shortcuts for quick searches. Requires the tag binary.
+    --system-tags       Add tags based on system scan database names.
+	  --mame-tags         Add tags based on internal MAME info, e.g., Capcom, CPS3.
 
 	Containment mode:
 	  --link              Core and game files are symlinked. (default)

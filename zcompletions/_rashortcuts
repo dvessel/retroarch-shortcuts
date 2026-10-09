@@ -1,6 +1,4 @@
 #compdef rashortcuts
-
-# zsh completions for 'rashortcuts'
 local arguments
 
 arguments=(
@@ -8,11 +6,12 @@ arguments=(
   '--history[history playlist]'
   {-p,--playlist}'[path/to/playlist.lpl]'
   '--process-all[process all entries for a given playlist.]'
-  '--process-existing[like all but process existing in the output directory.]'
-  '--mame-tags[Tags based on internal info, e.g., capcom, cps3.]'
+  '--process-existing[process entries for a given playlist that already exists in the output directory.]'
+  '--system-tags[add tags based on system scan database names.]'
+  '--mame-tags[add tags based on internal MAME info, e.g., Capcom, CPS3.]'
   '--link[core and game files are symlinked. (default)]'
-	'--embed-rom[copy all rom files into the shortcut.]'
-	'--embed-all[copy the core and rom files into the shortcut.]'
+  '--embed-rom[copy all rom files into the shortcut.]'
+  '--embed-all[copy the core and rom files into the shortcut.]'
   {-t,--template}'[path/to/template-folder]'
   {-h,--help}'[view help.]'
   '*:filename:_files'
