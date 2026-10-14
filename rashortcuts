@@ -75,13 +75,13 @@ arcade_systems=(
 )
 
 # Print with style.
-function p.header { printf "\n\e[1;30m%s\e[0m\n" $@ }
-function p.ok     { printf "\e[0;30m%s\e[0m\n" $@ }
-function p.list   { printf " \e[0;30m%s\e[0m\n" $@ }
-function p.note   { printf "\e[0;33m%s\e[0m\n" $@ }
-function p.lnote  { printf " \e[0;33m%s\e[0m\n" $@ }
-function p.error  { printf "\e[0;31m%s\e[0m\n" $@ >&2 }
-function p.lerror { printf " \e[0;31m%s\e[0m\n" $@ >&2 }
+function p.header { print -P -- "\n%B${(j/\n/)@}%b" }
+function p.ok     { print -l -- $@ }
+function p.list   { print  -- " ${(j/\n /)@}" }
+function p.note   { print -P -- "%F{yellow}${(j/\n/)@}%f" }
+function p.lnote  { print -P -- " %F{yellow}${(j/\n /)@}%f" }
+function p.error  { print -P -- "%F{red}${(j/\n/)@}%f" >&2 }
+function p.lerror { print -P -- " %F{red}${(j/\n /)@}%f" >&2 }
 
 # Make .icns files.
 function m.icns {
